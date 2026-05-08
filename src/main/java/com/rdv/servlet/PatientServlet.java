@@ -1,18 +1,19 @@
 package com.rdv.servlet;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import com.rdv.model.Medecin;
 import com.rdv.model.Patient;
+import com.rdv.model.Rdv;
 import com.rdv.service.MedecinService;
 import com.rdv.service.PatientService;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
 import com.rdv.service.RdvService;
-import com.rdv.model.Rdv;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
