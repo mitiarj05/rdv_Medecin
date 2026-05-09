@@ -24,9 +24,6 @@ public class AuthServlet extends HttpServlet {
     private final PatientService patientService = new PatientService();
     private final MedecinService medecinService = new MedecinService();
 
-    private static final int MAX_ATTEMPTS = 3;
-    private static final long BLOCK_TIME = 15 * 60 * 1000;
-
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
@@ -36,8 +33,6 @@ public class AuthServlet extends HttpServlet {
         if ("logout".equals(action)) {
             HttpSession session = req.getSession(false);
             if (session != null) {
-                session.removeAttribute("loginAttempts");
-                session.removeAttribute("blockedUntil");
                 session.invalidate();
             }
             resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
@@ -78,94 +73,58 @@ public class AuthServlet extends HttpServlet {
     }
 
     private void traiterConnexion(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException, ServletException {
+        throws IOException, ServletException {
 
-        String email = req.getParameter("email");
-        String password = req.getParameter("password");
-        String role = req.getParameter("role");
-        String remember = req.getParameter("remember");
+            String email = req.getParameter("email");
+            String password = req.getParameter("password");
+            String remember = req.getParameter("remember");
 
-        System.out.println("[AuthServlet] Tentative connexion - Rôle: " + role + ", Email: " + email);
+            System.out.println("[AuthServlet] Tentative connexion - Email: " + email);
 
-        HttpSession session = req.getSession();
+            boolean authentifie = false;
+            HttpSession session = req.getSession();
 
-        Long blockedUntil = (Long) session.getAttribute("blockedUntil");
-        if (blockedUntil != null && System.currentTimeMillis() < blockedUntil) {
-            long remainingMinutes = (blockedUntil - System.currentTimeMillis()) / (60 * 1000);
-            req.setAttribute("erreur", "Trop de tentatives. Réessayez dans " + (remainingMinutes + 1) + " minutes.");
-            req.getRequestDispatcher("/views/shared/login.jsp").forward(req, resp);
-            return;
-        } else if (blockedUntil != null) {
-            session.removeAttribute("loginAttempts");
-            session.removeAttribute("blockedUntil");
-        }
-
-        boolean authentifie = false;
-
-        if ("medecin".equals(role)) {
-            Medecin medecin = medecinService.connecter(email, password);
-            if (medecin != null) {
-                authentifie = true;
-                session.setAttribute("utilisateur", medecin);
-                session.setAttribute("role", "medecin");
-                session.setAttribute("idUtilisateur", medecin.getIdmed());
-                saveEmailToCookie(req, resp, email, role);
-                System.out.println("[AuthServlet] Médecin connecté - ID: " + medecin.getIdmed());
-            }
-        } else {
+            // 1. Essayer patient
             Patient patient = patientService.connecter(email, password);
             if (patient != null) {
                 authentifie = true;
                 session.setAttribute("utilisateur", patient);
                 session.setAttribute("role", "patient");
                 session.setAttribute("idUtilisateur", patient.getIdpat());
-                saveEmailToCookie(req, resp, email, role);
+                saveEmailToCookie(req, resp, email, "patient");
                 System.out.println("[AuthServlet] Patient connecté - ID: " + patient.getIdpat());
+            } else {
+                // 2. Si patient non trouvé, essayer médecin
+                Medecin medecin = medecinService.connecter(email, password);
+                if (medecin != null) {
+                    authentifie = true;
+                    session.setAttribute("utilisateur", medecin);
+                    session.setAttribute("role", "medecin");
+                    session.setAttribute("idUtilisateur", medecin.getIdmed());
+                    saveEmailToCookie(req, resp, email, "medecin");
+                    System.out.println("[AuthServlet] Médecin connecté - ID: " + medecin.getIdmed());
+                }
+            }
+
+            if (authentifie) {
+                if ("true".equals(remember)) {
+                    session.setMaxInactiveInterval(60 * 60 * 24 * 7); // 7 jours
+                } else {
+                    session.setMaxInactiveInterval(60 * 30); // 30 minutes
+                }
+
+                String role = (String) session.getAttribute("role");
+                if ("medecin".equals(role)) {
+                    resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
+                } else {
+                    resp.sendRedirect(req.getContextPath() + "/patient?action=dashboard");
+                }
+            } else {
+                req.setAttribute("erreur", "Email ou mot de passe incorrect.");
+                req.getRequestDispatcher("/views/shared/login.jsp").forward(req, resp);
             }
         }
-
-        if (authentifie) {
-            session.removeAttribute("loginAttempts");
-            session.removeAttribute("blockedUntil");
-
-            if ("true".equals(remember)) {
-                session.setMaxInactiveInterval(60 * 60 * 24 * 7);
-            } else {
-                session.setMaxInactiveInterval(60 * 30);
-            }
-
-            // ✅ REDIRECTION VERS SERVLET
-            if ("medecin".equals(role)) {
-                String redirectUrl = req.getContextPath() + "/medecin?action=dashboard";
-                System.out.println("[AuthServlet] Redirection médecin vers: " + redirectUrl);
-                resp.sendRedirect(redirectUrl);
-            } else {
-                String redirectUrl = req.getContextPath() + "/patient?action=dashboard";
-                System.out.println("[AuthServlet] Redirection patient vers: " + redirectUrl);
-                resp.sendRedirect(redirectUrl);
-            }
-        } else {
-            Integer attempts = (Integer) session.getAttribute("loginAttempts");
-            if (attempts == null) {
-                attempts = 1;
-            } else {
-                attempts++;
-            }
-            session.setAttribute("loginAttempts", attempts);
-
-            int remainingAttempts = MAX_ATTEMPTS - attempts;
-
-            if (attempts >= MAX_ATTEMPTS) {
-                long blockUntil = System.currentTimeMillis() + BLOCK_TIME;
-                session.setAttribute("blockedUntil", blockUntil);
-                req.setAttribute("erreur", "Trop de tentatives échouées. Compte bloqué pour 15 minutes.");
-            } else {
-                req.setAttribute("erreur", "Email ou mot de passe incorrect. Il vous reste " + remainingAttempts + " tentative(s).");
-            }
-            req.getRequestDispatcher("/views/shared/login.jsp").forward(req, resp);
-        }
-    }
-
+        
     private void traiterInscription(HttpServletRequest req, HttpServletResponse resp)
             throws IOException, ServletException {
 
