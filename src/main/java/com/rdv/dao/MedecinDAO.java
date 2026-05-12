@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -11,10 +13,6 @@ import java.util.UUID;
 import com.rdv.model.Medecin;
 import com.rdv.util.DBConnection;
 
-/**
- * DAO pour la table MEDECIN (PostgreSQL).
- * Toutes les requêtes SQL liées aux médecins sont ici.
- */
 public class MedecinDAO {
 
     // ── CREATE ───────────────────────────────────────────────────────────────
@@ -28,10 +26,10 @@ public class MedecinDAO {
 
             ps.setString(1, medecin.getNommed());
             ps.setString(2, medecin.getSpecialite());
-            ps.setInt(3,    medecin.getTauxHoraire());
+            ps.setInt(3, medecin.getTauxHoraire());
             ps.setString(4, medecin.getLieu());
             ps.setString(5, medecin.getEmail());
-            ps.setString(6, medecin.getMotDePasse()); // déjà hashé en bcrypt
+            ps.setString(6, medecin.getMotDePasse());
 
             return ps.executeUpdate() == 1;
 
@@ -63,7 +61,6 @@ public class MedecinDAO {
     }
 
     public Medecin trouverParId(String idmed) {
-        // Validation de l'UUID
         if (idmed == null || idmed.isEmpty()) {
             return null;
         }
@@ -71,7 +68,7 @@ public class MedecinDAO {
         try {
             UUID.fromString(idmed);
         } catch (IllegalArgumentException e) {
-            System.err.println("[MedecinDAO] ID invalide (pas un UUID): " + idmed);
+            System.err.println("[MedecinDAO] ID invalide: " + idmed);
             return null;
         }
 
@@ -114,7 +111,7 @@ public class MedecinDAO {
         return null;
     }
 
-    // ── RECHERCHE PAR NOM (ILIKE pour PostgreSQL) ────────────────────────────
+    // ── RECHERCHE ────────────────────────────────────────────────────────────
 
     public List<Medecin> rechercherParNom(String motCle) {
         List<Medecin> liste = new ArrayList<>();
@@ -137,8 +134,6 @@ public class MedecinDAO {
         return liste;
     }
 
-    // ── LISTE PAR SPÉCIALITÉ ─────────────────────────────────────────────────
-
     public List<Medecin> listerParSpecialite(String specialite) {
         List<Medecin> liste = new ArrayList<>();
         String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email " +
@@ -160,7 +155,23 @@ public class MedecinDAO {
         return liste;
     }
 
-    // ── TOP 5 MÉDECINS LES PLUS CONSULTÉS ────────────────────────────────────
+    public List<String> listerSpecialites() {
+        List<String> liste = new ArrayList<>();
+        String sql = "SELECT DISTINCT specialite FROM medecin ORDER BY specialite";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                liste.add(rs.getString("specialite"));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("[MedecinDAO] Erreur listerSpecialites : " + e.getMessage());
+        }
+        return liste;
+    }
 
     public List<Medecin> top5PlusConsultes() {
         List<Medecin> liste = new ArrayList<>();
@@ -187,39 +198,80 @@ public class MedecinDAO {
         return liste;
     }
 
-    // ── LISTE DES SPÉCIALITÉS DISTINCTES ─────────────────────────────────────
+    // ── GESTION DES PATIENTS DU MÉDECIN ───────────────────────────────────────
 
-    public List<String> listerSpecialites() {
-        List<String> liste = new ArrayList<>();
-        String sql = "SELECT DISTINCT specialite FROM medecin ORDER BY specialite";
+    // ── GESTION DES PATIENTS DU MÉDECIN ───────────────────────────────────────
 
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                liste.add(rs.getString("specialite"));
-            }
-
-        } catch (SQLException e) {
-            System.err.println("[MedecinDAO] Erreur listerSpecialites : " + e.getMessage());
-        }
+public List<PatientAvecStat> listerPatientsAvecStatistiques(String idMedecin) {
+    List<PatientAvecStat> liste = new ArrayList<>();
+    
+    if (idMedecin == null || idMedecin.isEmpty()) {
         return liste;
     }
+    
+    System.out.println("[MedecinDAO] Recherche patients pour médecin: " + idMedecin);
+    
+    String sql = "SELECT p.idpat, p.nom_pat, p.email, p.datenais, " +
+                 "COUNT(r.idrdv) as nb_rdv, " +
+                 "MAX(r.date_rdv) as dernier_rdv " +
+                 "FROM patient p " +
+                 "INNER JOIN rdv r ON p.idpat = r.idpat " +
+                 "WHERE r.idmed::text = ? " +
+                 "GROUP BY p.idpat, p.nom_pat, p.email, p.datenais " +
+                 "ORDER BY dernier_rdv DESC";
+    
+    try (Connection conn = DBConnection.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        
+        ps.setString(1, idMedecin);
+        
+        try (ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                PatientAvecStat p = new PatientAvecStat();
+                p.setIdpat(rs.getString("idpat"));
+                p.setNomPat(rs.getString("nom_pat"));
+                p.setEmail(rs.getString("email"));
+                p.setDatenais(rs.getString("datenais"));
+                p.setNbRendezVous(rs.getInt("nb_rdv"));
+                
+                Timestamp ts = rs.getTimestamp("dernier_rdv");
+                if (ts != null) {
+                    p.setDernierRdv(ts.toLocalDateTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                }
+                liste.add(p);
+                System.out.println("[MedecinDAO] Patient: " + p.getNomPat());
+            }
+        }
+    } catch (SQLException e) {
+        System.err.println("[MedecinDAO] Erreur: " + e.getMessage());
+        e.printStackTrace();
+    }
+    
+    return liste;
+}
+
+public boolean retirerPatientDeMaListe(String idMedecin, String idPatient) {
+    String sql = "DELETE FROM rdv WHERE idmed::text = ? AND idpat::text = ? AND date_rdv > NOW()";
+    
+    try (Connection conn = DBConnection.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        
+        ps.setString(1, idMedecin);
+        ps.setString(2, idPatient);
+        int deleted = ps.executeUpdate();
+        System.out.println("[MedecinDAO] RDV futurs supprimés: " + deleted);
+        return true;
+    } catch (SQLException e) {
+        System.err.println("[MedecinDAO] Erreur: " + e.getMessage());
+        return false;
+    }
+}
+  
 
     // ── UPDATE ───────────────────────────────────────────────────────────────
 
     public boolean modifier(Medecin medecin) {
-        // Validation de l'UUID
         if (medecin.getIdmed() == null || medecin.getIdmed().isEmpty()) {
-            System.err.println("[MedecinDAO] ID medecin manquant pour modification");
-            return false;
-        }
-
-        try {
-            UUID.fromString(medecin.getIdmed());
-        } catch (IllegalArgumentException e) {
-            System.err.println("[MedecinDAO] ID invalide pour modification: " + medecin.getIdmed());
             return false;
         }
 
@@ -231,13 +283,12 @@ public class MedecinDAO {
 
             ps.setString(1, medecin.getNommed());
             ps.setString(2, medecin.getSpecialite());
-            ps.setInt(3,    medecin.getTauxHoraire());
+            ps.setInt(3, medecin.getTauxHoraire());
             ps.setString(4, medecin.getLieu());
             ps.setString(5, medecin.getEmail());
             ps.setString(6, medecin.getIdmed());
 
-            int rowsAffected = ps.executeUpdate();
-            return rowsAffected == 1;
+            return ps.executeUpdate() == 1;
 
         } catch (SQLException e) {
             System.err.println("[MedecinDAO] Erreur modifier : " + e.getMessage());
@@ -248,15 +299,7 @@ public class MedecinDAO {
     // ── DELETE ───────────────────────────────────────────────────────────────
 
     public boolean supprimer(String idmed) {
-        // Validation de l'UUID
         if (idmed == null || idmed.isEmpty()) {
-            return false;
-        }
-
-        try {
-            UUID.fromString(idmed);
-        } catch (IllegalArgumentException e) {
-            System.err.println("[MedecinDAO] ID invalide pour suppression: " + idmed);
             return false;
         }
 
@@ -278,13 +321,10 @@ public class MedecinDAO {
 
     private Medecin mapper(ResultSet rs) throws SQLException {
         Medecin m = new Medecin();
-
-        // Récupérer l'ID (peut être un UUID ou déjà casté en text)
         Object idObj = rs.getObject("idmed");
         if (idObj != null) {
             m.setIdmed(idObj.toString());
         }
-
         m.setNommed(rs.getString("nommed"));
         m.setSpecialite(rs.getString("specialite"));
         m.setTauxHoraire(rs.getInt("taux_horaire"));
@@ -292,4 +332,29 @@ public class MedecinDAO {
         m.setEmail(rs.getString("email"));
         return m;
     }
+
+    // ── CLASSE INTERNE ───────────────────────────────────────────────────────
+
+    public static class PatientAvecStat {
+        private String idpat;
+        private String nomPat;
+        private String email;
+        private String datenais;
+        private int nbRendezVous;
+        private String dernierRdv;
+
+        public String getIdpat() { return idpat; }
+        public void setIdpat(String idpat) { this.idpat = idpat; }
+        public String getNomPat() { return nomPat; }
+        public void setNomPat(String nomPat) { this.nomPat = nomPat; }
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+        public String getDatenais() { return datenais; }
+        public void setDatenais(String datenais) { this.datenais = datenais; }
+        public int getNbRendezVous() { return nbRendezVous; }
+        public void setNbRendezVous(int nbRendezVous) { this.nbRendezVous = nbRendezVous; }
+        public String getDernierRdv() { return dernierRdv; }
+        public void setDernierRdv(String dernierRdv) { this.dernierRdv = dernierRdv; }
+    }
+
 }

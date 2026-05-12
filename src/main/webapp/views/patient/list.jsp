@@ -12,14 +12,16 @@
                     <input type="text" id="searchPatient" placeholder="🔍 Rechercher un patient..."
                            style="padding:8px 15px; border-radius:20px; border:1px solid var(--input-border); background:var(--bg-card); color:var(--text-primary); width:200px; transition:all 0.3s ease;">
                 </div>
-                <a href="${pageContext.request.contextPath}/patient?action=form" class="btn btn-primary">
-                    + Nouveau patient
-                </a>
             </div>
         </div>
 
         <c:if test="${not empty erreur}">
             <div class="alert alert-danger">${erreur}</div>
+        </c:if>
+
+        <c:if test="${not empty sessionScope.messageSucces}">
+            <div class="alert alert-success">${sessionScope.messageSucces}</div>
+            <% session.removeAttribute("messageSucces"); %>
         </c:if>
 
         <c:choose>
@@ -31,20 +33,19 @@
             </c:when>
             <c:otherwise>
                 <div class="table-container" style="overflow-x:auto;">
-                    <table class="patient-table">
+                    <table class="patient-table" style="width:100%; border-collapse:collapse;">
                         <thead>
                             <tr>
-                                <th>Nom</th>
-                                <th>Date de naissance</th>
-                                <th>Email</th>
-                                <th style="text-align:center;">Âge</th>
-                                <th style="text-align:center;">Actions</th>
+                                <th style="text-align:left; padding:12px;">Nom</th>
+                                <th style="text-align:left; padding:12px;">Date de naissance</th>
+                                <th style="text-align:left; padding:12px;">Email</th>
+                                <th style="text-align:center; padding:12px;">Âge</th>
                             </tr>
                         </thead>
                         <tbody>
                             <c:forEach var="p" items="${patients}">
-                                <tr class="patient-row" data-name="${fn:toLowerCase(p.nomPat)}">
-                                    <td>
+                                <tr class="patient-row" data-name="${fn:toLowerCase(p.nomPat)}" style="border-bottom:1px solid var(--border-light);">
+                                    <td style="padding:12px;">
                                         <div style="display:flex; align-items:center; gap:10px;">
                                             <div class="patient-avatar" style="width:35px; height:35px; background:linear-gradient(135deg, #1a73e8, #0d47a1); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">
                                                 ${fn:substring(p.nomPat, 0, 1)}
@@ -52,27 +53,16 @@
                                             <strong>${p.nomPat}</strong>
                                         </div>
                                     </td>
-                                    <td>${p.datenais}</td>
-                                    <td>
+                                    <td style="padding:12px;">${p.datenais}</td>
+                                    <td style="padding:12px;">
                                         <a href="mailto:${p.email}" style="color:#1a73e8; text-decoration:none;">${p.email}</a>
                                     </td>
-                                    <td style="text-align:center;">
+                                    <td style="text-align:center; padding:12px;">
                                         <span class="age-badge" style="background:var(--hover-bg); padding:4px 8px; border-radius:20px; font-size:12px;">
                                             <c:set var="birthYear" value="${fn:substring(p.datenais, 0, 4)}" />
                                             <c:set var="currentYear" value="<%= java.time.Year.now().getValue() %>" />
                                             ${currentYear - birthYear} ans
                                         </span>
-                                    </td>
-                                    <td style="text-align:center;">
-                                        <a href="${pageContext.request.contextPath}/patient?action=edit&id=${p.idpat}"
-                                           class="btn btn-warning" style="padding:6px 12px; font-size:12px;">
-                                            ✏️ Modifier
-                                        </a>
-                                        <a href="${pageContext.request.contextPath}/patient?action=supprimer&id=${p.idpat}"
-                                           class="btn btn-danger" style="padding:6px 12px; font-size:12px; margin-left:5px;"
-                                           onclick="return confirm('Supprimer ce patient ?')">
-                                            🗑️ Supprimer
-                                        </a>
                                     </td>
                                 </tr>
                             </c:forEach>
@@ -84,11 +74,7 @@
                 <div style="margin-top:20px; padding:15px; background:var(--hover-bg); border-radius:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                     <div>
                         <span style="font-weight:600;">📊 Total patients :</span>
-                        <span style="font-size:20px; font-weight:bold; color:#1a73e8; margin-left:8px;">${patients.size()}</span>
-                    </div>
-                    <div>
-                        <span style="font-weight:600;">👥 Dernier patient ajouté :</span>
-                        <span style="margin-left:8px;">${patients[patients.size()-1].nomPat}</span>
+                        <span style="font-size:20px; font-weight:bold; color:#1a73e8; margin-left:8px;">${fn:length(patients)}</span>
                     </div>
                 </div>
             </c:otherwise>
@@ -103,7 +89,6 @@
 
     .patient-table tr:hover {
         background: var(--hover-bg);
-        transform: scale(1.01);
     }
 
     .patient-avatar {
@@ -133,22 +118,25 @@
 
 <script>
     // Recherche de patient en temps réel
-    const searchInput = document.getElementById('searchPatient');
-    if (searchInput) {
-        searchInput.addEventListener('keyup', function() {
-            const searchTerm = this.value.toLowerCase();
-            const rows = document.querySelectorAll('.patient-row');
-            rows.forEach(row => {
-                const name = row.getAttribute('data-name');
-                if (name && name.includes(searchTerm)) {
-                    row.style.display = '';
-                    row.style.animation = 'fadeInUp 0.3s ease';
-                } else {
-                    row.style.display = 'none';
-                }
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchPatient');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = document.querySelectorAll('.patient-row');
+                let visibleCount = 0;
+                rows.forEach(row => {
+                    const name = row.getAttribute('data-name');
+                    if (name && name.includes(searchTerm)) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
             });
-        });
-    }
+        }
+    });
 </script>
 
 </body>

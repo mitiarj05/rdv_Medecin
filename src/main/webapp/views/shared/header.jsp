@@ -84,7 +84,7 @@
             transition: background 0.3s ease, color 0.3s ease;
         }
 
-        /* ===== SKELETON LOADER (optimisé pour rapidité) ===== */
+        /* ===== SKELETON LOADER ===== */
         .skeleton {
             background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
             background-size: 200% 100%;
@@ -128,7 +128,6 @@
             border-radius: 12px;
         }
 
-        /* Hide content while loading */
         .content-loaded {
             display: block;
         }
@@ -152,7 +151,7 @@
             width: 100%;
         }
 
-        /* ===== SIDEBAR (colonne de gauche) - CACHÉ PAR DÉFAUT ===== */
+        /* ===== SIDEBAR ===== */
         .sidebar {
             width: 280px;
             background: var(--bg-sidebar);
@@ -167,7 +166,6 @@
             margin-left: -280px;
         }
 
-        /* Sidebar visible */
         .sidebar.visible {
             margin-left: 0;
         }
@@ -252,7 +250,7 @@
             margin: 15px 20px;
         }
 
-        /* ===== CONTENU PRINCIPAL (colonne de droite) ===== */
+        /* ===== CONTENU PRINCIPAL ===== */
         .main-content {
             flex: 1;
             transition: margin-left 0.3s ease-in-out;
@@ -261,7 +259,6 @@
             overflow-x: auto;
         }
 
-        /* Animation d'entrée du contenu (accélérée) */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -277,7 +274,7 @@
             animation: fadeInUp 0.2s ease-out forwards;
         }
 
-        /* ===== HEADER DANS LE CONTENU ===== */
+        /* ===== HEADER ===== */
         .content-header {
             background: var(--bg-header);
             color: white;
@@ -740,6 +737,7 @@
                         <span class="sidebar-text">Mon profil</span>
                     </a>
                 </c:when>
+                
                 <c:when test="${sessionScope.role == 'medecin'}">
                     <a href="${pageContext.request.contextPath}/medecin?action=dashboard" class="sidebar-link">
                         <span class="sidebar-icon">🏠</span>
@@ -755,6 +753,10 @@
                     </a>
                     <a href="${pageContext.request.contextPath}/patient?action=liste" class="sidebar-link">
                         <span class="sidebar-icon">👥</span>
+                        <span class="sidebar-text">Liste des patients</span>
+                    </a>
+                    <a href="${pageContext.request.contextPath}/medecin?action=mesPatients" class="sidebar-link">
+                        <span class="sidebar-icon">📋</span>
                         <span class="sidebar-text">Mes patients</span>
                     </a>
                     <a href="${pageContext.request.contextPath}/medecin?action=top5" class="sidebar-link">
@@ -819,13 +821,13 @@
         </div>
 
 <script>
-    // ===== FULLSCREEN LOADER (disparaît plus vite) =====
-    window.addEventListener('load', function() {
+    // ===== FERMER LE LOADER IMMÉDIATEMENT =====
+    (function() {
         const loader = document.getElementById('fullscreenLoader');
-        setTimeout(function() {
+        if (loader) {
             loader.classList.add('hidden');
-        }, 200);
-    });
+        }
+    })();
 
     // ===== DARK MODE TOGGLE =====
     const darkModeToggle = document.getElementById('darkModeToggleBtn');

@@ -7,9 +7,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import com.rdv.dao.MedecinDAO;
 import com.rdv.model.Medecin;
+import com.rdv.model.Patient;
 import com.rdv.model.Rdv;
 import com.rdv.service.MedecinService;
+import com.rdv.service.PatientService;
 import com.rdv.service.RdvService;
 
 import jakarta.servlet.ServletException;
@@ -24,6 +27,7 @@ public class MedecinServlet extends HttpServlet {
 
     private final MedecinService medecinService = new MedecinService();
     private final RdvService rdvService = new RdvService();
+    private final PatientService patientService = new PatientService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -42,42 +46,70 @@ public class MedecinServlet extends HttpServlet {
             case "dashboard":
                 afficherDashboard(req, resp);
                 break;
+                
             case "liste":
-                List<Medecin> liste = medecinService.listerTous();
-                req.setAttribute("medecins", liste);
-                req.setAttribute("specialites", medecinService.listerSpecialites());
+                List<Patient> listePatients = patientService.listerTous();
+                req.setAttribute("patients", listePatients);
                 req.getRequestDispatcher("/views/medecin/list.jsp").forward(req, resp);
                 break;
+                
+            case "mesPatients":
+                afficherMesPatients(req, resp);
+                break;
+                
+            case "retirerPatient":
+                retirerPatient(req, resp);
+                break;
+                
             case "form":
                 req.setAttribute("specialites", medecinService.listerSpecialites());
                 req.getRequestDispatcher("/views/medecin/form.jsp").forward(req, resp);
                 break;
+                
             case "edit":
                 String idEdit = req.getParameter("id");
                 Medecin medecin = medecinService.trouverParId(idEdit);
                 if (medecin == null) {
-                    resp.sendRedirect(req.getContextPath() + "/medecin?action=liste");
+                    resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
                     return;
                 }
                 req.setAttribute("medecin", medecin);
                 req.setAttribute("specialites", medecinService.listerSpecialites());
                 req.getRequestDispatcher("/views/medecin/form.jsp").forward(req, resp);
                 break;
+                
             case "supprimer":
                 String idSupp = req.getParameter("id");
-                medecinService.supprimer(idSupp);
-                resp.sendRedirect(req.getContextPath() + "/medecin?action=liste");
+                HttpSession sessionSupp = req.getSession(false);
+                String idMedecinConnecte = null;
+                String roleUtilisateur = null;
+                
+                if (sessionSupp != null) {
+                    idMedecinConnecte = (String) sessionSupp.getAttribute("idUtilisateur");
+                    roleUtilisateur = (String) sessionSupp.getAttribute("role");
+                }
+                
+                boolean supprimeReussi = medecinService.supprimer(idSupp);
+                
+                if (supprimeReussi && "medecin".equals(roleUtilisateur) && idSupp != null && idSupp.equals(idMedecinConnecte)) {
+                    sessionSupp.invalidate();
+                    resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp?msg=account_deleted");
+                } else {
+                    resp.sendRedirect(req.getContextPath() + "/medecin?action=liste");
+                }
                 break;
+                
             case "top5":
                 List<Medecin> top5 = medecinService.top5PlusConsultes();
                 req.setAttribute("top5", top5);
                 req.getRequestDispatcher("/views/medecin/top5.jsp").forward(req, resp);
                 break;
+                
             default:
                 resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
         }
     }
-
+    
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
@@ -141,6 +173,85 @@ public class MedecinServlet extends HttpServlet {
         }
     }
 
+    private void afficherMesPatients(HttpServletRequest req, HttpServletResponse resp)
+        throws ServletException, IOException {
+    
+    System.out.println("=== AFFICHER MES PATIENTS ===");
+    
+    HttpSession session = req.getSession(false);
+    if (session == null) {
+        System.err.println("Session est null!");
+        resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
+        return;
+    }
+    
+    System.out.println("Session ID: " + session.getId());
+    
+    // Lister tous les attributs de session
+    java.util.Enumeration<String> attrs = session.getAttributeNames();
+    System.out.println("Attributs de session:");
+    while (attrs.hasMoreElements()) {
+        String attr = attrs.nextElement();
+        System.out.println("  " + attr + " = " + session.getAttribute(attr));
+    }
+    
+    String idMedecin = (String) session.getAttribute("idUtilisateur");
+    System.out.println("ID Médecin = '" + idMedecin + "'");
+    
+    if (idMedecin == null) {
+        System.err.println("ERREUR: idUtilisateur est NULL dans la session!");
+        resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
+        return;
+    }
+    
+    try {
+        List<MedecinDAO.PatientAvecStat> mesPatients = medecinService.listerPatientsAvecStats(idMedecin);
+        System.out.println("Résultat: " + (mesPatients != null ? mesPatients.size() : 0) + " patients");
+        
+        req.setAttribute("patientsDuMedecin", mesPatients);
+        req.setAttribute("totalPatients", mesPatients != null ? mesPatients.size() : 0);
+        
+        req.getRequestDispatcher("/views/medecin/mesPatients.jsp").forward(req, resp);
+    } catch (Exception e) {
+        System.err.println("ERREUR dans afficherMesPatients: " + e.getMessage());
+        e.printStackTrace();
+        throw e;
+    }
+}
+    
+    private void retirerPatient(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        
+        HttpSession session = req.getSession(false);
+        if (session == null) {
+            resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
+            return;
+        }
+        
+        String idMedecin = (String) session.getAttribute("idUtilisateur");
+        String idPatient = req.getParameter("idPatient");
+        
+        if (idMedecin == null || idPatient == null) {
+            req.setAttribute("erreur", "Paramètres invalides.");
+            afficherMesPatients(req, resp);
+            return;
+        }
+        
+        boolean retirerReussi = medecinService.retirerPatientDeMaListe(idMedecin, idPatient);
+        
+        if (retirerReussi) {
+            req.setAttribute("success", "Patient retiré de votre liste avec succès.");
+        } else {
+            req.setAttribute("erreur", "Erreur lors du retrait du patient.");
+        }
+        
+        List<MedecinDAO.PatientAvecStat> patientsMisAJour = medecinService.listerPatientsAvecStats(idMedecin);
+        req.setAttribute("patientsDuMedecin", patientsMisAJour);
+        req.setAttribute("totalPatients", patientsMisAJour != null ? patientsMisAJour.size() : 0);
+        
+        req.getRequestDispatcher("/views/medecin/mesPatients.jsp").forward(req, resp);
+    }
+
     private void afficherDashboard(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
@@ -148,33 +259,24 @@ public class MedecinServlet extends HttpServlet {
 
         HttpSession session = req.getSession(false);
         if (session == null) {
-            System.out.println("❌ Session null - redirection login");
             resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
             return;
         }
 
         String idMedecin = (String) session.getAttribute("idUtilisateur");
-        System.out.println("ID Médecin: " + idMedecin);
-
         if (idMedecin == null) {
-            System.out.println("❌ ID Médecin null - redirection login");
             resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
             return;
         }
 
-        // Récupérer les infos du médecin
         Medecin medecin = medecinService.trouverParId(idMedecin);
         int tauxHoraire = medecin != null ? medecin.getTauxHoraire() : 0;
         req.setAttribute("tauxHoraire", tauxHoraire);
         req.setAttribute("lieu", medecin != null ? medecin.getLieu() : "");
 
-        // Récupérer tous les rendez-vous du médecin
         List<Rdv> rdvs = rdvService.listerParMedecin(idMedecin);
-        System.out.println("Nombre de RDV trouvés: " + (rdvs != null ? rdvs.size() : 0));
-
         LocalDateTime now = LocalDateTime.now();
 
-        // 1. Prochain rendez-vous (RDV futur le plus proche)
         Rdv prochainRdv = null;
         if (rdvs != null && !rdvs.isEmpty()) {
             prochainRdv = rdvs.stream()
@@ -183,44 +285,22 @@ public class MedecinServlet extends HttpServlet {
                     .orElse(null);
         }
         req.setAttribute("prochainRdv", prochainRdv);
-        System.out.println("Prochain RDV: " + (prochainRdv != null ? prochainRdv.getDateFormatee() : "Aucun"));
 
-        // 2. Statistiques
-        long rdvPasses = 0;
-        long rdvAVenir = 0;
-        long rdvAujourdhui = 0;
-        long rdvCetteSemaine = 0;
-        long totalPatients = 0;
-        long revenusMois = 0;
+        long rdvPasses = 0, rdvAVenir = 0, rdvAujourdhui = 0, rdvCetteSemaine = 0, totalPatients = 0, revenusMois = 0;
 
         if (rdvs != null) {
-            rdvPasses = rdvs.stream()
-                    .filter(r -> r.getDateRdv().isBefore(now) || "ANNULE".equals(r.getStatut()))
-                    .count();
-            rdvAVenir = rdvs.stream()
-                    .filter(r -> r.getDateRdv().isAfter(now) && !"ANNULE".equals(r.getStatut()))
-                    .count();
-            rdvAujourdhui = rdvs.stream()
-                    .filter(r -> r.getDateRdv().toLocalDate().equals(now.toLocalDate()) && !"ANNULE".equals(r.getStatut()))
-                    .count();
+            rdvPasses = rdvs.stream().filter(r -> r.getDateRdv().isBefore(now) || "ANNULE".equals(r.getStatut())).count();
+            rdvAVenir = rdvs.stream().filter(r -> r.getDateRdv().isAfter(now) && !"ANNULE".equals(r.getStatut())).count();
+            rdvAujourdhui = rdvs.stream().filter(r -> r.getDateRdv().toLocalDate().equals(now.toLocalDate()) && !"ANNULE".equals(r.getStatut())).count();
 
-            LocalDateTime debutSemaine = now.withHour(0).withMinute(0).withSecond(0)
-                    .minusDays(now.getDayOfWeek().getValue() - 1);
-            rdvCetteSemaine = rdvs.stream()
-                    .filter(r -> r.getDateRdv().isAfter(debutSemaine) && !"ANNULE".equals(r.getStatut()))
-                    .count();
+            LocalDateTime debutSemaine = now.withHour(0).withMinute(0).withSecond(0).minusDays(now.getDayOfWeek().getValue() - 1);
+            rdvCetteSemaine = rdvs.stream().filter(r -> r.getDateRdv().isAfter(debutSemaine) && !"ANNULE".equals(r.getStatut())).count();
 
-            totalPatients = rdvs.stream()
-                    .map(Rdv::getIdpat)
-                    .filter(id -> id != null)
-                    .distinct()
-                    .count();
+            totalPatients = rdvs.stream().map(Rdv::getIdpat).filter(id -> id != null).distinct().count();
 
             if (tauxHoraire > 0) {
                 LocalDateTime debutMois = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
-                long nbRdvMois = rdvs.stream()
-                        .filter(r -> r.getDateRdv().isAfter(debutMois) && !"ANNULE".equals(r.getStatut()))
-                        .count();
+                long nbRdvMois = rdvs.stream().filter(r -> r.getDateRdv().isAfter(debutMois) && !"ANNULE".equals(r.getStatut())).count();
                 revenusMois = nbRdvMois * tauxHoraire;
             }
         }
@@ -232,14 +312,8 @@ public class MedecinServlet extends HttpServlet {
         req.setAttribute("totalPatients", totalPatients);
         req.setAttribute("revenusMois", revenusMois);
 
-        System.out.println("Statistiques - RDV passés: " + rdvPasses + ", RDV à venir: " + rdvAVenir);
-        System.out.println("Statistiques - Aujourd'hui: " + rdvAujourdhui + ", Cette semaine: " + rdvCetteSemaine);
-        System.out.println("Statistiques - Patients uniques: " + totalPatients + ", Revenus mois: " + revenusMois);
-
-        // 3. Derniers patients consultés
         List<PatientInfo> derniersPatients = new ArrayList<>();
         if (rdvs != null) {
-            System.out.println("\n=== CONSTRUCTION DERNIERS PATIENTS ===");
             rdvs.stream()
                     .filter(r -> r.getPatient() != null && r.getDateRdv().isBefore(now))
                     .sorted(Comparator.comparing(Rdv::getDateRdv).reversed())
@@ -250,35 +324,23 @@ public class MedecinServlet extends HttpServlet {
                         info.setEmail(r.getPatient().getEmail());
                         info.setDateDernierRdv(r.getDateRdv().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
                         derniersPatients.add(info);
-                        System.out.println("  Patient ajouté: " + info.getNomPat() + " - " + info.getDateDernierRdv());
                     });
         }
         req.setAttribute("derniersPatients", derniersPatients);
-        System.out.println("Derniers patients trouvés: " + derniersPatients.size());
-
-        // Vérifier que l'attribut est bien dans la requête
-        System.out.println("Attribut 'derniersPatients' dans request: " + (req.getAttribute("derniersPatients") != null));
-        System.out.println("=== FIN DASHBOARD ===\n");
 
         req.getRequestDispatcher("/views/medecin/dashboard.jsp").forward(req, resp);
     }
 
-    // Classe interne pour les infos patient
     public static class PatientInfo {
         private String nomPat;
         private String email;
         private String dateDernierRdv;
-
         public String getNomPat() { return nomPat; }
         public void setNomPat(String nomPat) { this.nomPat = nomPat; }
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
         public String getDateDernierRdv() { return dateDernierRdv; }
         public void setDateDernierRdv(String dateDernierRdv) { this.dateDernierRdv = dateDernierRdv; }
-
-        @Override
-        public String toString() {
-            return "PatientInfo{nomPat='" + nomPat + "', email='" + email + "', date='" + dateDernierRdv + "'}";
-        }
     }
+
 }
