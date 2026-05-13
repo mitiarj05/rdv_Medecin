@@ -642,11 +642,6 @@
                         <span><strong>Lundi - Vendredi</strong></span>
                     </div>
                 </div>
-                <div style="margin-top: 1rem; text-align: center;">
-                    <a href="${pageContext.request.contextPath}/medecin?action=edit&id=${sessionScope.idUtilisateur}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-pen"></i> Modifier mes informations
-                    </a>
-                </div>
             </div>
 
             <!-- Conseil du jour -->

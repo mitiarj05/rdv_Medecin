@@ -14,7 +14,15 @@ import com.rdv.util.DBConnection;
 
 public class PatientDAO {
 
+    // ── CREATE ───────────────────────────────────────────────────────────────
+
     public boolean inserer(Patient patient) {
+        // Vérifier si l'email existe déjà (chez patient ou médecin)
+        if (emailExiste(patient.getEmail())) {
+            System.err.println("[PatientDAO] L'email " + patient.getEmail() + " est déjà utilisé par un autre compte");
+            return false;
+        }
+
         String sql = "INSERT INTO patient (nom_pat, datenais, email, mot_de_passe) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getConnection();
@@ -32,6 +40,98 @@ public class PatientDAO {
             return false;
         }
     }
+
+    // ── VÉRIFICATION EMAIL ───────────────────────────────────────────────────
+
+    /**
+     * Vérifie si un email existe déjà chez les patients ou les médecins
+     * @param email L'email à vérifier
+     * @return true si l'email existe déjà, false sinon
+     */
+    public boolean emailExiste(String email) {
+        if (email == null || email.isEmpty()) {
+            return false;
+        }
+
+        // Vérifier dans la table patient
+        String sqlPatient = "SELECT COUNT(*) FROM patient WHERE email = ?";
+        // Vérifier dans la table medecin
+        String sqlMedecin = "SELECT COUNT(*) FROM medecin WHERE email = ?";
+        
+        try (Connection conn = DBConnection.getConnection()) {
+            // Vérifier chez les patients
+            try (PreparedStatement ps = conn.prepareStatement(sqlPatient)) {
+                ps.setString(1, email);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        System.out.println("[PatientDAO] Email " + email + " trouvé chez un patient");
+                        return true;
+                    }
+                }
+            }
+            
+            // Vérifier chez les médecins
+            try (PreparedStatement ps = conn.prepareStatement(sqlMedecin)) {
+                ps.setString(1, email);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        System.out.println("[PatientDAO] Email " + email + " trouvé chez un médecin");
+                        return true;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[PatientDAO] Erreur lors de la vérification de l'email : " + e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Vérifie si un email appartient à un autre patient (pour la modification)
+     * @param email L'email à vérifier
+     * @param idPatient L'ID du patient actuel (à exclure de la vérification)
+     * @return true si l'email existe chez un autre patient ou chez un médecin, false sinon
+     */
+    public boolean emailExistePourAutrePatient(String email, String idPatient) {
+        if (email == null || email.isEmpty() || idPatient == null || idPatient.isEmpty()) {
+            return false;
+        }
+
+        // Vérifier dans la table patient (en excluant le patient actuel)
+        String sqlPatient = "SELECT COUNT(*) FROM patient WHERE email = ? AND idpat::text != ?";
+        // Vérifier dans la table medecin
+        String sqlMedecin = "SELECT COUNT(*) FROM medecin WHERE email = ?";
+        
+        try (Connection conn = DBConnection.getConnection()) {
+            // Vérifier chez les autres patients
+            try (PreparedStatement ps = conn.prepareStatement(sqlPatient)) {
+                ps.setString(1, email);
+                ps.setString(2, idPatient);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        System.out.println("[PatientDAO] Email " + email + " trouvé chez un autre patient");
+                        return true;
+                    }
+                }
+            }
+            
+            // Vérifier chez les médecins
+            try (PreparedStatement ps = conn.prepareStatement(sqlMedecin)) {
+                ps.setString(1, email);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        System.out.println("[PatientDAO] Email " + email + " trouvé chez un médecin");
+                        return true;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[PatientDAO] Erreur lors de la vérification de l'email : " + e.getMessage());
+        }
+        return false;
+    }
+
+    // ── READ ─────────────────────────────────────────────────────────────────
 
     public List<Patient> listerTous() {
         List<Patient> liste = new ArrayList<>();
@@ -97,12 +197,21 @@ public class PatientDAO {
         return null;
     }
 
+    // ── UPDATE ───────────────────────────────────────────────────────────────
+
     public boolean modifier(Patient patient) {
         String sql = "UPDATE patient SET nom_pat = ?, datenais = ?, email = ? WHERE idpat::text = ?";
 
         try {
             UUID.fromString(patient.getIdpat());
         } catch (IllegalArgumentException e) {
+            System.err.println("[PatientDAO] ID patient invalide");
+            return false;
+        }
+
+        // Vérifier si l'email existe déjà chez un autre patient ou chez un médecin
+        if (emailExistePourAutrePatient(patient.getEmail(), patient.getIdpat())) {
+            System.err.println("[PatientDAO] Impossible de modifier: l'email " + patient.getEmail() + " est déjà utilisé par un autre compte");
             return false;
         }
 
@@ -121,6 +230,8 @@ public class PatientDAO {
             return false;
         }
     }
+
+    // ── DELETE ───────────────────────────────────────────────────────────────
 
     public boolean supprimer(String idpat) {
         String sql = "DELETE FROM patient WHERE idpat::text = ?";
@@ -142,6 +253,8 @@ public class PatientDAO {
             return false;
         }
     }
+
+    // ── MAPPER ───────────────────────────────────────────────────────────────
 
     private Patient mapper(ResultSet rs) throws SQLException {
         Patient p = new Patient();
