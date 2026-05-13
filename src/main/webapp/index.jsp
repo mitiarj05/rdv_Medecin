@@ -1,14 +1,12 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ taglib prefix="c" uri="jakarta.tags.core" %>
-
-<c:choose>
-    <c:when test="${sessionScope.role == 'medecin'}">
-        <c:redirect url="medecin?action=dashboard"/>
-    </c:when>
-    <c:when test="${sessionScope.role == 'patient'}">
-        <c:redirect url="patient?action=dashboard"/>
-    </c:when>
-    <c:otherwise>
-        <c:redirect url="views/shared/login.jsp"/>
-    </c:otherwise>
-</c:choose>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>RDV Medical</title>
+    <meta http-equiv="refresh" content="0; url=<%= request.getContextPath() %>/views/shared/login.jsp">
+</head>
+<body>
+    <p>Redirection vers <a href="<%= request.getContextPath() %>/views/shared/login.jsp">l'application RDV Medical</a>...</p>
+</body>
+</html>
