@@ -4,7 +4,7 @@ FROM tomcat:10.1-jdk17-temurin-jammy
 RUN rm -rf /usr/local/tomcat/webapps/*
 
 # Copier le WAR dans webapps (sans le renommer en ROOT.war)
-COPY rdv-medical.war /usr/local/tomcat/webapps/
+COPY rdv-medical.war /usr/local/tomcat/webapps/ROOT.war
 
 # Exposer le port
 EXPOSE 8080
