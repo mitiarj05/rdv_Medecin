@@ -7,19 +7,7 @@ RUN mvn clean package
 
 FROM tomcat:10.1-jdk17-temurin-jammy
 RUN rm -rf /usr/local/tomcat/webapps/*
-COPY --from=build /app/target/rdv-medical.war /usr/local/tomcat/webapps/ROOT.war
-
-# Extraire manuellement le WAR et vérifier les fichiers (TOUT DANS UNE SEULE COMMANDE)
-RUN cd /usr/local/tomcat/webapps && \
-    mkdir -p ROOT && \
-    cd ROOT && \
-    jar -xf ../ROOT.war && \
-    echo "=== Contenu du dossier ROOT ===" && \
-    ls -la && \
-    echo "=== Contenu du dossier WEB-INF ===" && \
-    ls -la WEB-INF/ && \
-    echo "=== Contenu du dossier views/shared ===" && \
-    ls -la views/shared/ || echo "views/shared non trouvé !"
+COPY --from=build /app/target/rdv-medical.war /usr/local/tomcat/webapps/rdv-medical.war
 
 EXPOSE 8080
 
