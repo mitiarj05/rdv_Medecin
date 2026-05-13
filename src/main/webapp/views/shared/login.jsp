@@ -17,7 +17,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+            background: linear-gradient(135deg, #e8f0fe 0%, #ffffff 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -25,44 +25,130 @@
             padding: 20px;
         }
 
-        .login-container {
-            max-width: 450px;
+        /* Container principal en deux colonnes */
+        .login-wrapper {
+            max-width: 1100px;
             width: 100%;
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
             overflow: hidden;
-            animation: slideUp 0.4s ease-out;
+            display: flex;
+            flex-wrap: wrap;
+            animation: slideUp 0.5s ease-out;
         }
 
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: translateY(30px); }
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        .login-header {
+        /* Colonne gauche - Image médicale */
+        .login-image {
+            flex: 1.2;
             background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
-            color: white;
-            padding: 35px 30px;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
         }
 
-        .login-header h1 {
+        .login-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="rgba(255,255,255,0.08)" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,165.3C1248,149,1344,107,1392,85.3L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') repeat-x bottom;
+            background-size: cover;
+            opacity: 0.3;
+        }
+
+        .image-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .image-icon {
+            font-size: 80px;
+            margin-bottom: 30px;
+            background: rgba(255,255,255,0.2);
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: auto;
+            margin-right: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        .image-content h2 {
             font-size: 28px;
-            margin-bottom: 8px;
+            margin-bottom: 15px;
             font-weight: 600;
         }
 
-        .login-header p {
+        .image-content p {
+            font-size: 15px;
+            line-height: 1.6;
             opacity: 0.9;
-            font-size: 14px;
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
-        .login-body {
-            padding: 30px;
+        .features-list {
+            margin-top: 30px;
+            text-align: left;
+            display: inline-block;
         }
 
-        /* ── Section comptes récents ── */
+        .features-list li {
+            list-style: none;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .features-list li i {
+            width: 24px;
+            font-size: 16px;
+        }
+
+        /* Colonne droite - Formulaire */
+        .login-form {
+            flex: 0.9;
+            padding: 40px;
+            background: white;
+        }
+
+        .form-header {
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .form-header h2 {
+            font-size: 24px;
+            color: #1a73e8;
+            margin-bottom: 6px;
+        }
+
+        .form-header p {
+            font-size: 13px;
+            color: #666;
+        }
+
+        /* Section comptes récents */
         .recent-accounts {
             margin-bottom: 25px;
             padding-bottom: 15px;
@@ -229,7 +315,7 @@
             border-color: #1a73e8;
         }
 
-        /* ── Formulaire ── */
+        /* Formulaire */
         .form-group {
             margin-bottom: 18px;
         }
@@ -340,6 +426,19 @@
         @keyframes fadeOut {
             to { opacity: 0; visibility: hidden; }
         }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .login-image {
+                display: none;
+            }
+            .login-form {
+                flex: 1;
+            }
+            .login-wrapper {
+                max-width: 450px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -372,13 +471,30 @@
     }
 %>
 
-<div class="login-container">
-    <div class="login-header">
-        <h1><i class="fas fa-hospital-user"></i> RDV Medical</h1>
-        <p>Connectez-vous à votre espace</p>
+<div class="login-wrapper">
+    <!-- Colonne gauche - Image médicale professionnelle -->
+    <div class="login-image">
+        <div class="image-content">
+            <div class="image-icon">
+                <i class="fas fa-stethoscope"></i>
+            </div>
+            <h2>RDV Medical</h2>
+            <p>La plateforme moderne pour vos rendez-vous médicaux</p>
+            <ul class="features-list">
+                <li><i class="fas fa-check-circle"></i> Prenez RDV en quelques clics</li>
+                <li><i class="fas fa-calendar-alt"></i> Gérez vos consultations</li>
+                <li><i class="fas fa-envelope"></i> Recevez des confirmations par email</li>
+                <li><i class="fas fa-chart-line"></i> Suivez votre historique médical</li>
+            </ul>
+        </div>
     </div>
 
-    <div class="login-body">
+    <!-- Colonne droite - Formulaire de connexion -->
+    <div class="login-form">
+        <div class="form-header">
+            <h2>Connexion</h2>
+            <p>Connectez-vous à votre espace personnel</p>
+        </div>
 
         <c:if test="${not empty erreur}">
             <div class="alert alert-danger">
@@ -420,12 +536,12 @@
             <input type="hidden" name="action" value="login">
 
             <div class="form-group">
-                <label>Adresse email</label>
+                <label><i class="fas fa-envelope"></i> Adresse email</label>
                 <input type="email" name="email" id="emailInput" placeholder="votre@email.com" required>
             </div>
 
             <div class="form-group">
-                <label>Mot de passe</label>
+                <label><i class="fas fa-lock"></i> Mot de passe</label>
                 <input type="password" name="password" id="passwordInput" placeholder="*********" required>
             </div>
 
@@ -466,8 +582,8 @@
 
     var contextPath = '${pageContext.request.contextPath}';
 
-    var CARD_WIDTH    = 90;  // largeur carte + gap (80px + 10px)
-    var VISIBLE_CARDS = 4;   // cartes visibles à la fois
+    var CARD_WIDTH    = 90;
+    var VISIBLE_CARDS = 4;
     var currentIndex  = 0;
     var totalAccounts = 0;
 
@@ -556,7 +672,7 @@
         var section = document.getElementById('recentAccountsSection');
         var listEl  = document.getElementById('accountsList');
         var allAccounts = patientEmailsData.concat(medecinEmailsData);
-        totalAccounts = allAccounts.length + 1; // +1 pour la carte "Ajouter"
+        totalAccounts = allAccounts.length + 1;
 
         if (allAccounts.length === 0) { section.style.display = 'none'; return; }
 
@@ -593,7 +709,7 @@
         var msgDiv = document.createElement('div');
         msgDiv.className = 'alert alert-success temp-message';
         msgDiv.innerHTML = html;
-        var loginBody = document.querySelector('.login-body');
+        var loginBody = document.querySelector('.login-form');
         loginBody.insertBefore(msgDiv, document.getElementById('recentAccountsSection').nextSibling);
         setTimeout(function() { msgDiv.remove(); }, 3000);
     }
