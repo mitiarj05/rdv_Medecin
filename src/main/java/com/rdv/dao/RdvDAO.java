@@ -298,4 +298,39 @@ public class RdvDAO {
         }
         return heures;
     }
+
+    // ── TOP 5 PATIENTS LES PLUS ACTIFS (NOUVELLE MÉTHODE) ─────────────────────
+    /**
+     * Récupère le top 5 des patients ayant le plus de rendez-vous confirmés
+     * Retourne une liste d'Object[] contenant : [idpat, nom_pat, email, nb_rdv]
+     */
+    public List<Object[]> top5PlusActifs() {
+        List<Object[]> liste = new ArrayList<>();
+        String sql = "SELECT p.idpat, p.nom_pat, p.email, COUNT(r.idrdv) as nb_rdv " +
+                "FROM patient p " +
+                "INNER JOIN rdv r ON p.idpat = r.idpat " +
+                "WHERE r.statut = 'CONFIRME' " +
+                "GROUP BY p.idpat, p.nom_pat, p.email " +
+                "ORDER BY nb_rdv DESC " +
+                "LIMIT 5";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                Object[] patient = new Object[4];
+                patient[0] = rs.getString("idpat");
+                patient[1] = rs.getString("nom_pat");
+                patient[2] = rs.getString("email");
+                patient[3] = rs.getInt("nb_rdv");
+                liste.add(patient);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("[RdvDAO] Erreur top5PlusActifs : " + e.getMessage());
+            e.printStackTrace();
+        }
+        return liste;
+    }
 }

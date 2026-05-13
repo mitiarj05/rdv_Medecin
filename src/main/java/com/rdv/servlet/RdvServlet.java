@@ -74,7 +74,7 @@ public class RdvServlet extends HttpServlet {
                     resp.sendRedirect(req.getContextPath() + "/rdv?action=liste");
                     return;
                 }
-                req.setAttribute("rdv",     rdv);
+                req.setAttribute("rdv", rdv);
                 req.setAttribute("medecin", medecinService.trouverParId(rdv.getIdmed()));
                 req.getRequestDispatcher("/views/rdv/form.jsp")
                    .forward(req, resp);

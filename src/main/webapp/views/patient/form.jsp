@@ -73,6 +73,28 @@
             </div>
         </form>
 
+        <!-- BOUTON SUPPRIMER LE COMPTE PATIENT -->
+        <c:if test="${not empty patient}">
+            <hr style="margin: 30px 0 20px 0; border-color: #ddd;">
+            
+            <div style="background-color: #fff3f3; padding: 15px; border-radius: 8px; border-left: 4px solid #dc3545;">
+                <h3 style="color: #dc3545; font-size: 16px; margin: 0 0 10px 0;">Zone dangereuse</h3>
+                
+                <a href="${pageContext.request.contextPath}/patient?action=supprimer&id=${patient.idpat}"
+                   class="btn btn-danger"
+                   style="display: inline-block; background-color:#dc3545; color:white; padding:10px 20px; 
+                          text-decoration:none; border-radius:5px; font-weight:bold;"
+                   onclick="return confirm('Êtes-vous ABSOLUMENT sûr de vouloir supprimer votre compte ?\n\n⚠️ Cette action est IRRÉVERSIBLE !\n\nToutes vos données (rendez-vous, etc.) seront supprimées définitivement.');">
+                    🗑️ Supprimer mon compte définitivement
+                </a>
+                
+                <p style="font-size:12px; color:#666; margin-top:10px;">
+                    ⚠️ Attention : Cette action supprimera votre compte ainsi que tous vos rendez-vous associés.
+                    Cette opération ne peut pas être annulée.
+                </p>
+            </div>
+        </c:if>
+        
     </div>
 </div>
 </body>

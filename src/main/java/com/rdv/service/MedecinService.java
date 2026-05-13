@@ -3,6 +3,7 @@ package com.rdv.service;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.rdv.dao.MedecinDAO;
@@ -10,9 +11,6 @@ import com.rdv.model.Medecin;
 import com.rdv.util.DBConnection;
 import com.rdv.util.PasswordUtil;
 
-/**
- * Service pour la logique métier liée aux médecins.
- */
 public class MedecinService {
 
     private final MedecinDAO medecinDAO = new MedecinDAO();
@@ -22,7 +20,6 @@ public class MedecinService {
     public String inscrire(String nom, String specialite, String tauxStr,
                            String lieu, String email, String motDePasse) {
 
-        // Validation
         if (nom == null || nom.trim().isEmpty())
             return "Le nom est obligatoire.";
         if (specialite == null || specialite.trim().isEmpty())
@@ -42,7 +39,6 @@ public class MedecinService {
             return "Le taux horaire doit être un nombre entier.";
         }
 
-        // Vérifier si l'email existe déjà
         if (medecinDAO.trouverParEmail(email) != null)
             return "Cet email est déjà utilisé.";
 
@@ -79,13 +75,17 @@ public class MedecinService {
         return medecinDAO.listerTous();
     }
 
+    /**
+     * Liste tous les médecins SANS exclure l'admin (pour l'affichage spécial admin)
+     */
+    public List<Medecin> listerTousAvecAdmin() {
+        return medecinDAO.listerTousAvecAdmin();
+    }
+
     public Medecin trouverParId(String idmed) {
         return medecinDAO.trouverParId(idmed);
     }
 
-    /**
-     * Trouve un médecin par son email
-     */
     public Medecin trouverParEmail(String email) {
         if (email == null || email.isEmpty()) return null;
         return medecinDAO.trouverParEmail(email.trim().toLowerCase());
@@ -108,6 +108,26 @@ public class MedecinService {
     public List<Medecin> top5PlusConsultes() {
         return medecinDAO.top5PlusConsultes();
     }
+
+    // ── GESTION DES PATIENTS DU MÉDECIN ───────────────────────────────────────
+
+    public List<MedecinDAO.PatientAvecStat> listerPatientsAvecStats(String idMedecin) {
+        if (idMedecin == null || idMedecin.isEmpty()) {
+            System.out.println("[MedecinService] ID médecin null ou vide");
+            return new ArrayList<>();
+        }
+        System.out.println("[MedecinService] Recherche patients pour médecin: " + idMedecin);
+        return medecinDAO.listerPatientsAvecStatistiques(idMedecin);
+    }
+
+    public boolean retirerPatientDeMaListe(String idMedecin, String idPatient) {
+        if (idMedecin == null || idPatient == null) {
+            return false;
+        }
+        return medecinDAO.retirerPatientDeMaListe(idMedecin, idPatient);
+    }
+
+    // ── MODIFICATION ─────────────────────────────────────────────────────────
 
     public String modifier(String idmed, String nom, String specialite,
                            String tauxStr, String lieu, String email) {
@@ -139,20 +159,17 @@ public class MedecinService {
         return medecinDAO.supprimer(idmed);
     }
 
-    /**
-     * Modifie le mot de passe d'un médecin
-     */
     public boolean modifierMotDePasse(Medecin medecin) {
         if (medecin == null || medecin.getIdmed() == null) return false;
 
-        String sql = "UPDATE medecin SET mot_de_passe = ? WHERE idmed = ?";
+        String sql = "UPDATE medecin SET mot_de_passe = ? WHERE idmed::text = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, medecin.getMotDePasse());
             ps.setString(2, medecin.getIdmed());
             return ps.executeUpdate() == 1;
         } catch (SQLException e) {
-            System.err.println("[MedecinService] Erreur modifierMotDePasse : " + e.getMessage());
+            System.err.println("[MedecinService] Erreur: " + e.getMessage());
             return false;
         }
     }
