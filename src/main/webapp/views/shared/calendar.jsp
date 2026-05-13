@@ -6,37 +6,50 @@
     <!-- En-tête du calendrier -->
     <div class="card" style="margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;">
-            <h2 class="card-title" style="margin-bottom:0; border:none;">📅 Calendrier des rendez-vous</h2>
+            <h2 class="card-title" style="margin-bottom:0; border:none;">
+                <i class="fas fa-calendar-alt"></i>
+                <c:choose>
+                    <c:when test="${sessionScope.role == 'admin'}">
+                        Calendrier général - Tous les rendez-vous
+                    </c:when>
+                    <c:otherwise>
+                        Calendrier des rendez-vous
+                    </c:otherwise>
+                </c:choose>
+            </h2>
             <div style="display:flex; gap:10px;">
-                <a href="${pageContext.request.contextPath}/calendar?year=${year}&month=${month-1}"
-                   class="btn btn-secondary">◀ Mois précédent</a>
-                <a href="${pageContext.request.contextPath}/calendar?year=<%= java.time.LocalDate.now().getYear() %>&month=<%= java.time.LocalDate.now().getMonthValue() %>"
-                   class="btn btn-primary">📅 Aujourd'hui</a>
-                <a href="${pageContext.request.contextPath}/calendar?year=${year}&month=${month+1}"
-                   class="btn btn-secondary">Mois suivant ▶</a>
+                <a href="${pageContext.request.contextPath}/calendar?year=${year}&month=${month-1}" class="btn btn-secondary">
+                    <i class="fas fa-chevron-left"></i> Mois précédent
+                </a>
+                <a href="${pageContext.request.contextPath}/calendar?year=<%= java.time.LocalDate.now().getYear() %>&month=<%= java.time.LocalDate.now().getMonthValue() %>" class="btn btn-primary">
+                    <i class="fas fa-calendar-day"></i> Aujourd'hui
+                </a>
+                <a href="${pageContext.request.contextPath}/calendar?year=${year}&month=${month+1}" class="btn btn-secondary">
+                    Mois suivant <i class="fas fa-chevron-right"></i>
+                </a>
             </div>
         </div>
     </div>
 
-    <!-- Statistiques du mois -->
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:16px; margin-bottom:25px;">
-        <div class="stat-card" style="text-align:center;">
-            <div class="stat-icon">📋</div>
+    <!-- Statistiques du mois - Style identique au dashboard -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
             <div class="stat-number">${stats.totalRdvs}</div>
             <div class="stat-label">Total rendez-vous</div>
         </div>
-        <div class="stat-card" style="text-align:center;">
-            <div class="stat-icon">✅</div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #34a853, #1e7e4a);"><i class="fas fa-check-circle"></i></div>
             <div class="stat-number" style="color:#34a853;">${stats.totalConfirmes}</div>
             <div class="stat-label">Confirmés</div>
         </div>
-        <div class="stat-card" style="text-align:center;">
-            <div class="stat-icon">❌</div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #ea4335, #c5221f);"><i class="fas fa-times-circle"></i></div>
             <div class="stat-number" style="color:#ea4335;">${stats.totalAnnules}</div>
             <div class="stat-label">Annulés</div>
         </div>
-        <div class="stat-card" style="text-align:center;">
-            <div class="stat-icon">📊</div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
             <div class="stat-number">${stats.tauxOccupation}%</div>
             <div class="stat-label">Taux d'occupation</div>
         </div>
@@ -44,23 +57,25 @@
 
     <!-- Calendrier -->
     <div class="card">
-        <h3 class="card-title" style="text-align:center;">${monthName} ${year}</h3>
+        <h3 class="card-title" style="text-align:center;">
+            <i class="fas fa-calendar-alt"></i> ${monthName} ${year}
+        </h3>
 
         <!-- Jours de la semaine -->
-        <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:8px; margin-bottom:12px; text-align:center;">
-            <div style="font-weight:bold; color:#ea4335; padding:10px;">Lundi</div>
-            <div style="font-weight:bold; padding:10px;">Mardi</div>
-            <div style="font-weight:bold; padding:10px;">Mercredi</div>
-            <div style="font-weight:bold; padding:10px;">Jeudi</div>
-            <div style="font-weight:bold; padding:10px;">Vendredi</div>
-            <div style="font-weight:bold; padding:10px;">Samedi</div>
-            <div style="font-weight:bold; color:#ea4335; padding:10px;">Dimanche</div>
+        <div class="weekdays">
+            <div><i class="fas fa-sun"></i> Lundi</div>
+            <div><i class="fas fa-calendar-alt"></i> Mardi</div>
+            <div><i class="fas fa-calendar-alt"></i> Mercredi</div>
+            <div><i class="fas fa-calendar-alt"></i> Jeudi</div>
+            <div><i class="fas fa-calendar-alt"></i> Vendredi</div>
+            <div><i class="fas fa-calendar-week"></i> Samedi</div>
+            <div><i class="fas fa-moon"></i> Dimanche</div>
         </div>
 
         <!-- Grille des jours -->
-        <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:8px;">
+        <div class="calendar-grid">
             <c:forEach begin="0" end="${startOffset-1}" var="i">
-                <div class="calendar-empty" style="background:var(--border-light); border-radius:12px; min-height:120px;"></div>
+                <div class="calendar-empty"></div>
             </c:forEach>
 
             <c:forEach begin="1" end="${daysInMonth}" var="day">
@@ -69,28 +84,23 @@
 
                 <div class="calendar-day ${isToday ? 'today' : ''}"
                      data-day="${day}"
-                     style="background:var(--bg-card); border-radius:12px; padding:10px; min-height:120px;
-                            border:2px solid ${isToday ? '#1a73e8' : 'var(--border-color)'};
-                            transition: all 0.2s ease; cursor:pointer;"
                      onclick="openDayModal(${year}, ${month}, ${day})">
 
-                    <div style="font-weight:bold; font-size:16px; margin-bottom:8px; ${isToday ? 'color:#1a73e8;' : ''}">
-                        ${day}
-                    </div>
+                    <div class="day-number ${isToday ? 'today-number' : ''}">${day}</div>
 
-                    <div class="rdv-list" style="max-height:80px; overflow-y:auto;">
+                    <div class="rdv-list">
                         <c:set var="dayRdvs" value="${rdvsByDay[day]}" />
                         <c:if test="${not empty dayRdvs}">
                             <c:forEach items="${dayRdvs}" var="rdv">
                                 <c:choose>
                                     <c:when test="${rdv.statut == 'CONFIRME'}">
-                                        <div class="rdv-badge" style="font-size:11px; padding:3px 6px; border-radius:6px; margin-bottom:4px; background:#e6f4ea; color:#137333;">
-                                            ⏰ ${rdv.heure} - ${rdv.nom}
+                                        <div class="rdv-badge confirmed">
+                                            <i class="fas fa-clock"></i> ${rdv.heure}
                                         </div>
                                     </c:when>
                                     <c:otherwise>
-                                        <div class="rdv-badge" style="font-size:11px; padding:3px 6px; border-radius:6px; margin-bottom:4px; background:#fce8e6; color:#c5221f;">
-                                            ⏰ ${rdv.heure} - ${rdv.nom}
+                                        <div class="rdv-badge cancelled">
+                                            <i class="fas fa-clock"></i> ${rdv.heure}
                                         </div>
                                     </c:otherwise>
                                 </c:choose>
@@ -102,72 +112,228 @@
         </div>
 
         <!-- Légende -->
-        <div style="margin-top:20px; padding-top:15px; border-top:1px solid var(--border-color); display:flex; gap:20px; flex-wrap:wrap; justify-content:center;">
-            <div style="display:flex; align-items:center; gap:8px;">
-                <div style="width:16px; height:16px; background:#e6f4ea; border-radius:4px;"></div>
-                <span style="font-size:12px;">Rendez-vous confirmé</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <div style="width:16px; height:16px; background:#fce8e6; border-radius:4px;"></div>
-                <span style="font-size:12px;">Rendez-vous annulé</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <div style="width:16px; height:16px; background:var(--bg-card); border:2px solid #1a73e8; border-radius:4px;"></div>
-                <span style="font-size:12px;">Aujourd'hui</span>
-            </div>
+        <div class="legend">
+            <div><span class="legend-badge confirmed-badge"></span> Rendez-vous confirmé</div>
+            <div><span class="legend-badge cancelled-badge"></span> Rendez-vous annulé</div>
+            <div><span class="legend-badge today-badge"></span> Aujourd'hui</div>
         </div>
     </div>
 </div>
 
 <!-- Modal pour afficher les détails du jour -->
 <div id="dayModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center;">
-    <div class="modal-content" style="background:var(--bg-card); border-radius:16px; max-width:500px; width:90%; max-height:80%; overflow-y:auto; animation: fadeInUp 0.3s ease;">
+    <div class="modal-content" style="background:var(--bg-card); border-radius:16px; max-width:600px; width:90%; max-height:80%; overflow-y:auto; animation: fadeInUp 0.3s ease;">
         <div style="padding:20px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h3 id="modalTitle" style="color:#1a73e8;"></h3>
-                <button onclick="closeModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:var(--text-secondary);">&times;</button>
+                <h3 id="modalTitle" style="color:#1a73e8;"><i class="fas fa-calendar-day"></i> </h3>
+                <button onclick="closeModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:var(--text-secondary);"><i class="fas fa-times"></i></button>
             </div>
             <div id="modalBody" style="max-height:400px; overflow-y:auto;">
                 <!-- Contenu dynamique -->
             </div>
             <div style="margin-top:20px; text-align:center;">
-                <button onclick="closeModal()" class="btn btn-secondary">Fermer</button>
+                <button onclick="closeModal()" class="btn btn-secondary"><i class="fas fa-door-closed"></i> Fermer</button>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    .calendar-day {
-        transition: all 0.2s ease;
+    /* Statistiques - identique au dashboard médecin */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
     }
 
-    .calendar-day:hover {
+    .stat-card {
+        background: var(--bg-card);
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.2s ease;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .stat-card:hover {
         transform: translateY(-3px);
-        box-shadow: 0 6px 16px var(--shadow-hover);
-        border-color: #1a73e8 !important;
+        box-shadow: 0 8px 20px var(--shadow-hover);
+        border-color: #1a73e8;
     }
 
-    .calendar-empty {
-        transition: all 0.2s ease;
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #1a73e8, #0d47a1);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 12px;
+        color: white;
+        font-size: 24px;
     }
 
-    .rdv-badge {
+    .stat-number {
+        font-size: 28px;
+        font-weight: bold;
+        color: #1a73e8;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+
+    /* Calendrier */
+    .weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+        margin-bottom: 12px;
+        text-align: center;
+    }
+
+    .weekdays div {
+        padding: 12px;
+        font-weight: 600;
+        background: var(--hover-bg);
+        border-radius: 12px;
+        color: #1a73e8;
+        font-size: 14px;
+    }
+
+    .weekdays div i {
+        margin-right: 6px;
+        font-size: 12px;
+    }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+    }
+
+    .calendar-day {
+        background: var(--bg-card);
+        border-radius: 12px;
+        padding: 10px;
+        min-height: 100px;
+        border: 1px solid var(--border-color);
         transition: all 0.2s ease;
         cursor: pointer;
     }
 
-    .rdv-badge:hover {
-        transform: translateX(3px);
-        filter: brightness(0.95);
+    .calendar-day:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px var(--shadow-hover);
+        border-color: #1a73e8;
     }
 
-    .today {
-        background: linear-gradient(135deg, #e8f0fe, #d4e4fc) !important;
+    .calendar-day.today {
+        border: 2px solid #1a73e8;
+        background: linear-gradient(135deg, #e8f0fe, #d4e4fc);
     }
 
-    body.dark-mode .today {
-        background: linear-gradient(135deg, #1a2744, #0f1a2e) !important;
+    body.dark-mode .calendar-day.today {
+        background: linear-gradient(135deg, #1a2744, #0f1a2e);
+    }
+
+    .day-number {
+        font-weight: bold;
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: var(--text-primary);
+    }
+
+    .day-number.today-number {
+        color: #1a73e8;
+    }
+
+    .calendar-empty {
+        background: var(--border-light);
+        border-radius: 12px;
+        min-height: 100px;
+    }
+
+    .rdv-list {
+        max-height: 65px;
+        overflow-y: auto;
+    }
+
+    .rdv-badge {
+        font-size: 10px;
+        padding: 3px 6px;
+        border-radius: 6px;
+        margin-bottom: 3px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .rdv-badge.confirmed {
+        background: #e6f4ea;
+        color: #137333;
+    }
+
+    .rdv-badge.cancelled {
+        background: #fce8e6;
+        color: #c5221f;
+    }
+
+    .legend {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        gap: 25px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .legend div {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+    }
+
+    .legend-badge {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+    }
+
+    .confirmed-badge {
+        background: #e6f4ea;
+        border: 1px solid #137333;
+    }
+
+    .cancelled-badge {
+        background: #fce8e6;
+        border: 1px solid #c5221f;
+    }
+
+    .today-badge {
+        background: var(--bg-card);
+        border: 2px solid #1a73e8;
+    }
+
+    .rdv-list::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .rdv-list::-webkit-scrollbar-track {
+        background: var(--border-light);
+        border-radius: 4px;
+    }
+
+    .rdv-list::-webkit-scrollbar-thumb {
+        background: #1a73e8;
+        border-radius: 4px;
     }
 
     @keyframes fadeInUp {
@@ -185,27 +351,84 @@
         animation: fadeInUp 0.3s ease;
     }
 
-    /* Scrollbar personnalisée pour la liste des RDV */
-    .rdv-list::-webkit-scrollbar {
-        width: 4px;
+    /* Styles pour le modal */
+    .rdv-detail-card {
+        background: var(--hover-bg);
+        border-radius: 12px;
+        padding: 15px;
+        transition: all 0.2s ease;
+        margin-bottom: 12px;
     }
 
-    .rdv-list::-webkit-scrollbar-track {
-        background: var(--border-light);
-        border-radius: 4px;
+    .rdv-detail-card:hover {
+        transform: translateX(5px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
-    .rdv-list::-webkit-scrollbar-thumb {
-        background: #1a73e8;
-        border-radius: 4px;
+    .rdv-time {
+        font-size: 18px;
+        font-weight: bold;
+        color: #1a73e8;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .rdv-info {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .rdv-info-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+    }
+
+    .rdv-info-item i {
+        width: 20px;
+        color: #1a73e8;
+    }
+
+    .badge-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
+        .weekdays div {
+            font-size: 11px;
+            padding: 8px;
+        }
+        .weekdays div i {
+            display: none;
+        }
+        .calendar-day {
+            min-height: 70px;
+            padding: 6px;
+        }
+        .day-number {
+            font-size: 12px;
+        }
+        .rdv-badge {
+            font-size: 8px;
+            padding: 2px 4px;
+        }
     }
 </style>
 
 <script>
     const contextPath = '${pageContext.request.contextPath}';
+    const userRole = '${sessionScope.role}';
     let currentRdvsData = {};
 
-    // Récupérer tous les rendez-vous du mois depuis le serveur (via l'attribut JSP)
     <c:forEach items="${rdvsByDay}" var="entry">
         currentRdvsData[${entry.key}] = [
             <c:forEach items="${entry.value}" var="rdv" varStatus="status">
@@ -216,7 +439,9 @@
                     nom: '${rdv.nom}',
                     email: '${rdv.email}',
                     specialite: '${rdv.specialite}',
-                    lieu: '${rdv.lieu}'
+                    lieu: '${rdv.lieu}',
+                    medecinNom: '${rdv.medecinNom}',
+                    medecinSpecialite: '${rdv.medecinSpecialite}'
                 }${not status.last ? ',' : ''}
             </c:forEach>
         ];
@@ -229,14 +454,14 @@
 
         const date = new Date(year, month - 1, day);
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        modalTitle.innerHTML = '📅 ' + date.toLocaleDateString('fr-FR', options);
+        modalTitle.innerHTML = '<i class="fas fa-calendar-day"></i> ' + date.toLocaleDateString('fr-FR', options);
 
         const rdvs = currentRdvsData[day] || [];
 
         if (rdvs.length === 0) {
             modalBody.innerHTML = `
                 <div style="text-align:center; padding:40px;">
-                    <div style="font-size:48px; margin-bottom:15px;">📭</div>
+                    <i class="fas fa-calendar-times" style="font-size:48px; color:var(--text-muted); margin-bottom:15px;"></i>
                     <p style="color:var(--text-secondary);">Aucun rendez-vous ce jour</p>
                 </div>
             `;
@@ -244,37 +469,65 @@
             let html = '<div style="display:flex; flex-direction:column; gap:12px;">';
             for (let i = 0; i < rdvs.length; i++) {
                 const rdv = rdvs[i];
-                const statusText = rdv.statut === 'CONFIRME' ? 'Confirmé' : 'Annulé';
-                const statusColor = rdv.statut === 'CONFIRME' ? '#34a853' : '#ea4335';
-                html += `
-                    <div class="rdv-detail-card" style="background:var(--hover-bg); border-radius:12px; padding:15px; transition:all 0.2s ease;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                            <div>
-                                <div style="font-size:18px; font-weight:bold; color:#1a73e8;">⏰ ` + rdv.heure + `</div>
-                                <div style="margin-top:8px;">
-                                    <strong>👤 ` + rdv.nom + `</strong>
-                                </div>`;
-                if (rdv.email) {
-                    html += `<div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">📧 ` + rdv.email + `</div>`;
-                }
-                if (rdv.specialite) {
-                    html += `<div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">🏥 ` + rdv.specialite + `</div>`;
-                }
-                if (rdv.lieu) {
-                    html += `<div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">📍 ` + rdv.lieu + `</div>`;
-                }
-                html += `
+                const statusText = rdv.statut == 'CONFIRME' ? 'Confirmé' : 'Annulé';
+                const statusColor = rdv.statut == 'CONFIRME' ? '#34a853' : '#ea4335';
+                const statusIcon = rdv.statut == 'CONFIRME' ? 'fa-check-circle' : 'fa-times-circle';
+
+                // ========== ADMIN : Affichage complet (Patient + Médecin) ==========
+                if (userRole === 'admin') {
+                    html += `
+                        <div class="rdv-detail-card">
+                            <div class="rdv-time">
+                                <i class="fas fa-clock"></i> ` + rdv.heure + `
+                                <span class="badge-status" style="background:` + statusColor + `20; color:` + statusColor + `; margin-left:auto;">
+                                    <i class="fas ` + statusIcon + `"></i> ` + statusText + `
+                                </span>
                             </div>
-                            <div>
-                                <span class="badge" style="background:` + statusColor + `20; color:` + statusColor + `; padding:4px 10px; border-radius:20px; font-size:12px;">` + statusText + `</span>
+                            <div class="rdv-info">
+                                <div class="rdv-info-item"><i class="fas fa-user"></i> <strong>Patient:</strong> ` + rdv.nom + `</div>
+                                <div class="rdv-info-item"><i class="fas fa-envelope"></i> ` + (rdv.email || 'Non renseigné') + `</div>
+                                <div class="rdv-info-item"><i class="fas fa-user-md"></i> <strong>Médecin:</strong> ` + (rdv.medecinNom || 'Non spécifié') + `</div>
+                                <div class="rdv-info-item"><i class="fas fa-stethoscope"></i> ` + (rdv.medecinSpecialite || 'Non spécifiée') + `</div>
+                                <div class="rdv-info-item"><i class="fas fa-map-marker-alt"></i> ` + (rdv.lieu || 'Non spécifié') + `</div>
                             </div>
                         </div>
-                        <div style="margin-top:12px; display:flex; gap:8px;">
-                            <a href="${contextPath}/rdv?action=edit&id=` + rdv.idrdv + `" class="btn btn-warning" style="padding:5px 12px; font-size:12px;">✏️ Modifier</a>
-                            <a href="${contextPath}/rdv?action=annuler&id=` + rdv.idrdv + `" class="btn btn-danger" style="padding:5px 12px; font-size:12px;" onclick="return confirm('Annuler ce rendez-vous ?')">❌ Annuler</a>
+                    `;
+                }
+                // ========== MÉDECIN : Affichage patient uniquement ==========
+                else if (userRole === 'medecin') {
+                    html += `
+                        <div class="rdv-detail-card">
+                            <div class="rdv-time">
+                                <i class="fas fa-clock"></i> ` + rdv.heure + `
+                                <span class="badge-status" style="background:` + statusColor + `20; color:` + statusColor + `; margin-left:auto;">
+                                    <i class="fas ` + statusIcon + `"></i> ` + statusText + `
+                                </span>
+                            </div>
+                            <div class="rdv-info">
+                                <div class="rdv-info-item"><i class="fas fa-user"></i> <strong>Patient:</strong> ` + rdv.nom + `</div>
+                                <div class="rdv-info-item"><i class="fas fa-envelope"></i> ` + (rdv.email || 'Non renseigné') + `</div>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                }
+                // ========== PATIENT : Affichage médecin uniquement ==========
+                else {
+                    html += `
+                        <div class="rdv-detail-card">
+                            <div class="rdv-time">
+                                <i class="fas fa-clock"></i> ` + rdv.heure + `
+                                <span class="badge-status" style="background:` + statusColor + `20; color:` + statusColor + `; margin-left:auto;">
+                                    <i class="fas ` + statusIcon + `"></i> ` + statusText + `
+                                </span>
+                            </div>
+                            <div class="rdv-info">
+                                <div class="rdv-info-item"><i class="fas fa-user-md"></i> <strong>Médecin:</strong> ` + rdv.nom + `</div>
+                                <div class="rdv-info-item"><i class="fas fa-stethoscope"></i> ` + (rdv.specialite || 'Non spécifiée') + `</div>
+                                <div class="rdv-info-item"><i class="fas fa-map-marker-alt"></i> ` + (rdv.lieu || 'Non spécifié') + `</div>
+                            </div>
+                        </div>
+                    `;
+                }
             }
             html += '</div>';
             modalBody.innerHTML = html;
@@ -287,7 +540,6 @@
         document.getElementById('dayModal').style.display = 'none';
     }
 
-    // Fermer le modal en cliquant en dehors
     window.onclick = function(event) {
         const modal = document.getElementById('dayModal');
         if (event.target === modal) {

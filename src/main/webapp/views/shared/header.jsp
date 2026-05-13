@@ -6,6 +6,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RDV Medical</title>
+    <!-- Font Awesome pour les icônes professionnelles -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         /* ===== VARIABLES CSS (thème clair par défaut) ===== */
         :root {
@@ -228,7 +230,7 @@
         }
 
         .sidebar-icon {
-            font-size: 22px;
+            font-size: 20px;
             width: 30px;
             text-align: center;
             flex-shrink: 0;
@@ -236,7 +238,7 @@
         }
 
         .sidebar-link:hover .sidebar-icon {
-            transform: scale(1.1) rotate(3deg);
+            transform: scale(1.1);
         }
 
         .sidebar-text {
@@ -298,7 +300,7 @@
             background: rgba(255,255,255,0.2);
             border: none;
             color: white;
-            font-size: 28px;
+            font-size: 24px;
             cursor: pointer;
             width: 48px;
             height: 48px;
@@ -318,7 +320,7 @@
             background: rgba(255,255,255,0.2);
             border: none;
             color: white;
-            font-size: 22px;
+            font-size: 20px;
             cursor: pointer;
             width: 48px;
             height: 48px;
@@ -332,7 +334,7 @@
 
         .dark-mode-toggle:hover {
             background: rgba(255,255,255,0.3);
-            transform: scale(1.05) rotate(15deg);
+            transform: scale(1.05);
         }
 
         .header-actions {
@@ -688,7 +690,7 @@
             .menu-toggle-btn, .dark-mode-toggle {
                 width: 42px;
                 height: 42px;
-                font-size: 20px;
+                font-size: 18px;
             }
         }
     </style>
@@ -705,66 +707,118 @@
     <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <h3>🏥 RDV Medical</h3>
+            <h3><i class="fas fa-hospital-user"></i> RDV Medical</h3>
             <p>Plateforme médicale</p>
         </div>
 
         <div class="sidebar-nav">
             <c:choose>
-                <c:when test="${sessionScope.role == 'patient'}">
-                    <a href="${pageContext.request.contextPath}/patient?action=dashboard" class="sidebar-link">
-                        <span class="sidebar-icon">🏠</span>
-                        <span class="sidebar-text">Dashboard</span>
+                <c:when test="${sessionScope.role == 'admin'}">
+                    <!-- ===== MENU ADMIN ===== -->
+                    <a href="${pageContext.request.contextPath}/admin?action=dashboard" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-tachometer-alt"></i></span>
+                        <span class="sidebar-text">Dashboard Admin</span>
                     </a>
-                    <a href="${pageContext.request.contextPath}/search" class="sidebar-link">
-                        <span class="sidebar-icon">🔍</span>
-                        <span class="sidebar-text">Trouver un médecin</span>
+
+                    <div class="sidebar-divider"></div>
+
+                    <!-- GESTION DES MÉDECINS -->
+                    <a href="${pageContext.request.contextPath}/admin?action=medecins" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-user-md"></i></span>
+                        <span class="sidebar-text">Gérer les médecins</span>
                     </a>
-                    <a href="${pageContext.request.contextPath}/rdv?action=liste" class="sidebar-link">
-                        <span class="sidebar-icon">📋</span>
-                        <span class="sidebar-text">Mes rendez-vous</span>
+
+                    <!-- GESTION DES PATIENTS -->
+                    <a href="${pageContext.request.contextPath}/admin?action=patients" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-users"></i></span>
+                        <span class="sidebar-text">Gérer les patients</span>
                     </a>
-                    <a href="${pageContext.request.contextPath}/calendar" class="sidebar-link">
-                        <span class="sidebar-icon">📅</span>
-                        <span class="sidebar-text">Calendrier</span>
+
+                    <!-- GESTION DES RDV -->
+                    <a href="${pageContext.request.contextPath}/admin?action=rdvs" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-calendar-alt"></i></span>
+                        <span class="sidebar-text">Tous les RDV</span>
                     </a>
-                    <a href="${pageContext.request.contextPath}/patient?action=top5" class="sidebar-link">
-                        <span class="sidebar-icon">🏆</span>
+
+                    <div class="sidebar-divider"></div>
+
+                    <!-- STATISTIQUES ET CLASSEMENTS -->
+                    <a href="${pageContext.request.contextPath}/admin?action=top5Medecins" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-chart-line"></i></span>
                         <span class="sidebar-text">Top 5 médecins</span>
                     </a>
-                    <a href="${pageContext.request.contextPath}/patient?action=edit&id=${sessionScope.idUtilisateur}" class="sidebar-link">
-                        <span class="sidebar-icon">👤</span>
+                    <a href="${pageContext.request.contextPath}/admin?action=topPatients" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-star"></i></span>
+                        <span class="sidebar-text">Top 5 patients</span>
+                    </a>
+                    <a href="${pageContext.request.contextPath}/calendar" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-calendar-check"></i></span>
+                        <span class="sidebar-text">Calendrier général</span>
+                    </a>
+
+                    <div class="sidebar-divider"></div>
+
+                    <!-- PROFIL ADMIN -->
+                    <a href="${pageContext.request.contextPath}/medecin?action=edit&id=${sessionScope.idUtilisateur}" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-user-cog"></i></span>
                         <span class="sidebar-text">Mon profil</span>
                     </a>
                 </c:when>
-                
-                <c:when test="${sessionScope.role == 'medecin'}">
-                    <a href="${pageContext.request.contextPath}/medecin?action=dashboard" class="sidebar-link">
-                        <span class="sidebar-icon">🏠</span>
+
+                <c:when test="${sessionScope.role == 'patient'}">
+                    <a href="${pageContext.request.contextPath}/patient?action=dashboard" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-tachometer-alt"></i></span>
                         <span class="sidebar-text">Dashboard</span>
                     </a>
+                    <a href="${pageContext.request.contextPath}/search" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-search"></i></span>
+                        <span class="sidebar-text">Trouver un médecin</span>
+                    </a>
                     <a href="${pageContext.request.contextPath}/rdv?action=liste" class="sidebar-link">
-                        <span class="sidebar-icon">📋</span>
+                        <span class="sidebar-icon"><i class="fas fa-calendar-alt"></i></span>
                         <span class="sidebar-text">Mes rendez-vous</span>
                     </a>
                     <a href="${pageContext.request.contextPath}/calendar" class="sidebar-link">
-                        <span class="sidebar-icon">📅</span>
+                        <span class="sidebar-icon"><i class="fas fa-calendar-week"></i></span>
+                        <span class="sidebar-text">Calendrier</span>
+                    </a>
+                    <a href="${pageContext.request.contextPath}/patient?action=top5" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-chart-line"></i></span>
+                        <span class="sidebar-text">Top 5 médecins</span>
+                    </a>
+                    <a href="${pageContext.request.contextPath}/patient?action=edit&id=${sessionScope.idUtilisateur}" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-user-edit"></i></span>
+                        <span class="sidebar-text">Mon profil</span>
+                    </a>
+                </c:when>
+
+                <c:when test="${sessionScope.role == 'medecin'}">
+                    <a href="${pageContext.request.contextPath}/medecin?action=dashboard" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-tachometer-alt"></i></span>
+                        <span class="sidebar-text">Dashboard</span>
+                    </a>
+                    <a href="${pageContext.request.contextPath}/rdv?action=liste" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-calendar-alt"></i></span>
+                        <span class="sidebar-text">Mes rendez-vous</span>
+                    </a>
+                    <a href="${pageContext.request.contextPath}/calendar" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-calendar-week"></i></span>
                         <span class="sidebar-text">Calendrier</span>
                     </a>
                     <a href="${pageContext.request.contextPath}/patient?action=liste" class="sidebar-link">
-                        <span class="sidebar-icon">👥</span>
+                        <span class="sidebar-icon"><i class="fas fa-user-friends"></i></span>
                         <span class="sidebar-text">Liste des patients</span>
                     </a>
                     <a href="${pageContext.request.contextPath}/medecin?action=mesPatients" class="sidebar-link">
-                        <span class="sidebar-icon">📋</span>
+                        <span class="sidebar-icon"><i class="fas fa-heartbeat"></i></span>
                         <span class="sidebar-text">Mes patients</span>
                     </a>
                     <a href="${pageContext.request.contextPath}/medecin?action=top5" class="sidebar-link">
-                        <span class="sidebar-icon">🏆</span>
+                        <span class="sidebar-icon"><i class="fas fa-chart-line"></i></span>
                         <span class="sidebar-text">Top 5 médecins</span>
                     </a>
                     <a href="${pageContext.request.contextPath}/medecin?action=edit&id=${sessionScope.idUtilisateur}" class="sidebar-link">
-                        <span class="sidebar-icon">⚙️</span>
+                        <span class="sidebar-icon"><i class="fas fa-user-cog"></i></span>
                         <span class="sidebar-text">Mon profil</span>
                     </a>
                 </c:when>
@@ -773,7 +827,7 @@
             <div class="sidebar-divider"></div>
 
             <a href="${pageContext.request.contextPath}/auth?action=logout" class="sidebar-link">
-                <span class="sidebar-icon">🔓</span>
+                <span class="sidebar-icon"><i class="fas fa-sign-out-alt"></i></span>
                 <span class="sidebar-text">Déconnexion</span>
             </a>
         </div>
@@ -785,17 +839,17 @@
         <!-- Header -->
         <div class="content-header">
             <div class="header-left">
-                <button class="menu-toggle-btn" id="menuToggleBtn">☰</button>
+                <button class="menu-toggle-btn" id="menuToggleBtn"><i class="fas fa-bars"></i></button>
                 <div class="logo">
-                    <h1>🏥 RDV Medical</h1>
+                    <h1><i class="fas fa-hospital-user"></i> RDV Medical</h1>
                     <p>Plateforme de rendez-vous médicaux</p>
                 </div>
             </div>
             <div class="header-actions">
-                <button class="dark-mode-toggle" id="darkModeToggleBtn" title="Thème sombre/clair">🌙</button>
+                <button class="dark-mode-toggle" id="darkModeToggleBtn" title="Thème sombre/clair"><i class="fas fa-moon"></i></button>
                 <div class="header-right">
                     <div class="user-name">
-                        👋
+                        <i class="fas fa-user-circle"></i>
                         <c:choose>
                             <c:when test="${sessionScope.role == 'patient'}">
                                 ${sessionScope.utilisateur.nomPat}
@@ -803,12 +857,16 @@
                             <c:when test="${sessionScope.role == 'medecin'}">
                                 Dr. ${sessionScope.utilisateur.nommed}
                             </c:when>
+                            <c:when test="${sessionScope.role == 'admin'}">
+                                <i class="fas fa-crown"></i> Admin ${sessionScope.utilisateur.nommed}
+                            </c:when>
                             <c:otherwise>
                                 Invité
                             </c:otherwise>
                         </c:choose>
                     </div>
                     <div class="date-area">
+                        <i class="far fa-calendar-alt"></i>
                         <script>
                             const jours = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
                             const mois = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -834,25 +892,23 @@
     const body = document.body;
 
     const savedTheme = localStorage.getItem('darkMode');
+
     if (savedTheme === 'enabled') {
         body.classList.add('dark-mode');
-        if (darkModeToggle) darkModeToggle.innerHTML = '☀️';
+        if (darkModeToggle) darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
     } else {
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            body.classList.add('dark-mode');
-            if (darkModeToggle) darkModeToggle.innerHTML = '☀️';
-            localStorage.setItem('darkMode', 'enabled');
-        }
+        body.classList.remove('dark-mode');
+        if (darkModeToggle) darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
     }
 
     function toggleDarkMode() {
         if (body.classList.contains('dark-mode')) {
             body.classList.remove('dark-mode');
-            if (darkModeToggle) darkModeToggle.innerHTML = '🌙';
+            darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
             localStorage.setItem('darkMode', 'disabled');
         } else {
             body.classList.add('dark-mode');
-            if (darkModeToggle) darkModeToggle.innerHTML = '☀️';
+            darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
             localStorage.setItem('darkMode', 'enabled');
         }
     }

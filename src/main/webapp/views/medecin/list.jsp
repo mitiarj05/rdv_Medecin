@@ -1,144 +1,227 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ include file="/views/shared/header.jsp" %>
 
 <div class="container">
     <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h2 class="card-title" style="margin-bottom:0; border:none;">Mes rendez-vous</h2>
-            <c:if test="${sessionScope.role == 'patient'}">
-                <a href="${pageContext.request.contextPath}/search" class="btn btn-primary">
-                    + Prendre un RDV
-                </a>
-            </c:if>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+            <h2 class="card-title" style="margin-bottom:0; border:none;">
+                <i class="fas fa-users"></i> Liste des patients
+            </h2>
+            <div style="display:flex; gap:10px;">
+                <div class="search-box" style="position:relative;">
+                    <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#aaa;"></i>
+                    <input type="text" id="searchPatient" placeholder="Rechercher un patient..."
+                           style="padding:8px 15px 8px 40px; border-radius:20px; border:1px solid var(--input-border); background:var(--bg-card); color:var(--text-primary); width:220px; transition:all 0.3s ease;">
+                </div>
+            </div>
         </div>
 
         <c:if test="${not empty erreur}">
-            <div class="alert alert-danger">${erreur}</div>
-        </c:if>
-        <c:if test="${not empty succes}">
-            <div class="alert alert-success">${succes}</div>
+            <div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${erreur}</div>
         </c:if>
 
-        <%-- Légende --%>
-        <div style="display:flex; gap:20px; margin-bottom:16px; font-size:13px; color:#666;">
-            <span>
-                <span class="badge badge-success">Confirmé</span>
-                → Modifier ou Annuler
-            </span>
-            <span>
-                <span class="badge badge-danger">Annulé</span>
-                → Modifier ou Supprimer
-            </span>
-        </div>
+        <c:if test="${not empty sessionScope.messageSucces}">
+            <div class="alert alert-success"><i class="fas fa-check-circle"></i> ${sessionScope.messageSucces}</div>
+            <% session.removeAttribute("messageSucces"); %>
+        </c:if>
 
         <c:choose>
-            <c:when test="${empty rdvs}">
+            <c:when test="${empty patients}">
                 <div style="text-align:center; padding:50px;">
-                    <p style="color:#888; font-size:15px; margin-bottom:16px;">
-                        Aucun rendez-vous pour le moment.
-                    </p>
-                    <c:if test="${sessionScope.role == 'patient'}">
-                        <a href="${pageContext.request.contextPath}/search"
-                           class="btn btn-primary">
-                            Trouver un médecin
-                        </a>
-                    </c:if>
+                    <i class="fas fa-users" style="font-size:48px; color:var(--text-muted); margin-bottom:15px;"></i>
+                    <p style="color:var(--text-secondary);">Aucun patient enregistré.</p>
                 </div>
             </c:when>
             <c:otherwise>
-                <table>
-                    <thead>
-                        <tr>
-                            <c:choose>
-                                <c:when test="${sessionScope.role == 'medecin'}">
-                                    <th>Patient</th>
-                                    <th>Email patient</th>
-                                </c:when>
-                                <c:otherwise>
-                                    <th>Médecin</th>
-                                    <th>Spécialité</th>
-                                </c:otherwise>
-                            </c:choose>
-                            <th>Date et heure</th>
-                            <th>Lieu</th>
-                            <th style="text-align:center;">Statut</th>
-                            <th style="text-align:center;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <c:forEach var="r" items="${rdvs}">
+                <div class="table-container" style="overflow-x:auto;">
+                    <table class="patient-table">
+                        <thead>
                             <tr>
-                                <c:choose>
-                                    <c:when test="${sessionScope.role == 'medecin'}">
-                                        <td><strong>${r.patient.nomPat}</strong></td>
-                                        <td>${r.patient.email}</td>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <td><strong>Dr. ${r.medecin.nommed}</strong></td>
-                                        <td>
-                                            <span class="badge badge-success">
-                                                ${r.medecin.specialite}
-                                            </span>
-                                        </td>
-                                    </c:otherwise>
-                                </c:choose>
-                                <td>${r.dateFormatee}</td>
-                                <td>${r.medecin.lieu}</td>
-                                <td style="text-align:center;">
-                                    <c:choose>
-                                        <c:when test="${r.statut == 'CONFIRME'}">
-                                            <span class="badge badge-success">Confirmé</span>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <span class="badge badge-danger">Annulé</span>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </td>
-
-                                <%-- Actions selon le statut --%>
-                                <td style="text-align:center;">
-                                    <c:choose>
-
-                                        <%-- RDV CONFIRMÉ → Modifier + Annuler --%>
-                                        <c:when test="${r.statut == 'CONFIRME'}">
-                                            <a href="${pageContext.request.contextPath}/rdv?action=edit&id=${r.idrdv}"
-                                               class="btn btn-warning"
-                                               style="padding:6px 12px; font-size:12px;">
-                                                Modifier
-                                            </a>
-                                            <a href="${pageContext.request.contextPath}/rdv?action=annuler&id=${r.idrdv}"
-                                               class="btn btn-danger"
-                                               style="padding:6px 12px; font-size:12px;"
-                                               onclick="return confirm('Annuler ce rendez-vous ? Un email sera envoyé.')">
-                                                Annuler
-                                            </a>
-                                        </c:when>
-
-                                        <%-- RDV ANNULÉ → Modifier + Supprimer --%>
-                                        <c:when test="${r.statut == 'ANNULE'}">
-                                            <a href="${pageContext.request.contextPath}/rdv?action=edit&id=${r.idrdv}"
-                                               class="btn btn-warning"
-                                               style="padding:6px 12px; font-size:12px;">
-                                                Modifier
-                                            </a>
-                                            <a href="${pageContext.request.contextPath}/rdv?action=supprimer&id=${r.idrdv}"
-                                               class="btn btn-secondary"
-                                               style="padding:6px 12px; font-size:12px;"
-                                               onclick="return confirm('Supprimer définitivement ce RDV ?')">
-                                                Supprimer
-                                            </a>
-                                        </c:when>
-
-                                    </c:choose>
-                                </td>
+                                <th><i class="fas fa-user"></i> Nom</th>
+                                <th><i class="fas fa-calendar-alt"></i> Date de naissance</th>
+                                <th><i class="fas fa-envelope"></i> Email</th>
+                                <th style="text-align:center;"><i class="fas fa-hourglass-half"></i> Âge</th>
                             </tr>
-                        </c:forEach>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <c:forEach var="p" items="${patients}">
+                                <tr class="patient-row" data-name="${fn:toLowerCase(p.nomPat)}">
+                                    <td>
+                                        <div class="patient-info">
+                                            <div class="patient-avatar">${fn:substring(p.nomPat, 0, 1)}</div>
+                                            <strong>${p.nomPat}</strong>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="info-cell">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            <span>${p.datenais}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="info-cell">
+                                            <i class="fas fa-envelope"></i>
+                                            <span>${p.email}</span>
+                                        </div>
+                                    </td>
+                                    <td style="text-align:center;">
+                                        <div class="age-badge">
+                                            <c:set var="birthYear" value="${fn:substring(p.datenais, 0, 4)}" />
+                                            <c:set var="currentYear" value="<%= java.time.Year.now().getValue() %>" />
+                                            ${currentYear - birthYear} ans
+                                        </div>
+                                    </td>
+                                </tr>
+                            </c:forEach>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Statistiques des patients -->
+                <div class="stats-footer">
+                    <i class="fas fa-chart-simple"></i>
+                    <span style="font-weight:600;">Total patients :</span>
+                    <span class="total-count">${fn:length(patients)}</span>
+                </div>
             </c:otherwise>
         </c:choose>
     </div>
 </div>
+
+<style>
+    .patient-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .patient-table th {
+        text-align: left;
+        padding: 14px;
+        background: var(--hover-bg);
+        color: #1a73e8;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    .patient-table td {
+        padding: 14px;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: middle;
+    }
+    .patient-table tr:hover {
+        background: var(--hover-bg);
+    }
+
+    .patient-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .patient-avatar {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #1a73e8, #0d47a1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+        transition: transform 0.2s ease;
+    }
+    .patient-table tr:hover .patient-avatar {
+        transform: scale(1.1);
+    }
+
+    .info-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .info-cell i {
+        width: 20px;
+        color: #1a73e8;
+        font-size: 14px;
+    }
+    .info-cell span {
+        color: var(--text-primary);
+    }
+
+    .age-badge {
+        background: linear-gradient(135deg, #1a73e8, #0d47a1);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        display: inline-block;
+        font-weight: 500;
+    }
+
+    .stats-footer {
+        margin-top: 20px;
+        padding: 15px;
+        background: var(--hover-bg);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .stats-footer i {
+        font-size: 18px;
+        color: #1a73e8;
+    }
+    .total-count {
+        font-size: 22px;
+        font-weight: bold;
+        color: #1a73e8;
+        margin-left: 5px;
+    }
+
+    .search-box input:focus {
+        width: 250px;
+        outline: none;
+        border-color: #1a73e8;
+        box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+    }
+
+    @media (max-width: 768px) {
+        .patient-table th, .patient-table td {
+            padding: 10px;
+            font-size: 13px;
+        }
+        .patient-avatar {
+            width: 30px;
+            height: 30px;
+            font-size: 12px;
+        }
+        .info-cell i {
+            width: 16px;
+            font-size: 12px;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchPatient');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = document.querySelectorAll('.patient-row');
+                rows.forEach(row => {
+                    const name = row.getAttribute('data-name');
+                    if (name && name.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+    });
+</script>
+
 </body>
 </html>

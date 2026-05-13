@@ -18,7 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
  *
  * GET  q=..            → recherche par nom (LIKE %q%)
  * GET  specialite=..   → filtrer par spécialité
- * GET  (rien)          → afficher tous les médecins
+ * GET  (rien)          → afficher tous les médecins (sauf admin)
  */
 @WebServlet("/search")
 public class SearchServlet extends HttpServlet {
@@ -47,7 +47,7 @@ public class SearchServlet extends HttpServlet {
             req.setAttribute("motCle", motCle);
 
         } else {
-            // Afficher tous les médecins
+            // Afficher tous les médecins (sauf admin car listerTous() exclut admin@rdv.com)
             resultats = medecinService.listerTous();
         }
 
@@ -56,6 +56,6 @@ public class SearchServlet extends HttpServlet {
         req.setAttribute("specialites", medecinService.listerSpecialites());
 
         req.getRequestDispatcher("/views/medecin/search.jsp")
-           .forward(req, resp);
+                .forward(req, resp);
     }
 }

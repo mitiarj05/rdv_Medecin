@@ -12,6 +12,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
+import com.rdv.model.Medecin;
+
 @WebFilter("/*")
 public class AuthFilter implements Filter {
 
@@ -55,6 +57,12 @@ public class AuthFilter implements Filter {
             "/views/shared/calendar.jsp"
     };
 
+    // Pages réservées à l'ADMIN
+    private static final String[] PAGES_ADMIN = {
+            "/admin",
+            "/views/admin/"
+    };
+
     @Override
     public void doFilter(ServletRequest request, ServletResponse response,
                          FilterChain chain) throws IOException, ServletException {
@@ -90,7 +98,41 @@ public class AuthFilter implements Filter {
         String role = (String) session.getAttribute("role");
         String idUtilisateur = (String) session.getAttribute("idUtilisateur");
 
+        // 🔥 NOUVEAU : Détecter et convertir le rôle ADMIN
+        // Vérifier si l'utilisateur est un médecin avec l'email admin@rdv.com
+        if ("medecin".equals(role) && session.getAttribute("utilisateur") != null) {
+            Object utilisateur = session.getAttribute("utilisateur");
+            if (utilisateur instanceof Medecin) {
+                Medecin medecin = (Medecin) utilisateur;
+                if ("admin@rdv.com".equals(medecin.getEmail())) {
+                    role = "admin";
+                    session.setAttribute("role", "admin");
+                    System.out.println("[AuthFilter] ✅ Utilisateur détecté comme ADMIN - Email: " + medecin.getEmail());
+                }
+            }
+        }
+
         System.out.println("[AuthFilter] Connecté - Rôle: " + role + ", Chemin: " + cheminComplet);
+
+        // ✅ Vérification PRIORITAIRE pour les pages admin
+        for (String page : PAGES_ADMIN) {
+            if (cheminComplet.startsWith(page) || chemin.startsWith(page)) {
+                if (!"admin".equals(role)) {
+                    System.out.println("[AuthFilter] Page admin - Accès refusé pour " + role);
+                    if ("patient".equals(role)) {
+                        resp.sendRedirect(req.getContextPath() + "/patient?action=dashboard");
+                    } else if ("medecin".equals(role)) {
+                        resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
+                    } else {
+                        resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
+                    }
+                    return;
+                }
+                System.out.println("[AuthFilter] ✅ Accès admin autorisé - Suite de la chaîne");
+                chain.doFilter(request, response);
+                return;
+            }
+        }
 
         // ✅ Vérification PRIORITAIRE pour les pages accessibles à tous les utilisateurs connectés
         for (String page : PAGES_ACCESSIBLES_TOUS) {
@@ -120,6 +162,9 @@ public class AuthFilter implements Filter {
             } else if ("medecin".equals(role)) {
                 resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
                 return;
+            } else if ("admin".equals(role)) {
+                resp.sendRedirect(req.getContextPath() + "/admin?action=dashboard");
+                return;
             }
         }
 
@@ -127,7 +172,7 @@ public class AuthFilter implements Filter {
         for (String page : PAGES_RESERVEES_MEDECIN) {
             if (cheminComplet.startsWith(page) ||
                     (chemin.startsWith(page) && !page.contains("?"))) {
-                if (!"medecin".equals(role)) {
+                if (!"medecin".equals(role) && !"admin".equals(role)) {
                     System.out.println("[AuthFilter] Page réservée médecin - Accès refusé pour " + role);
                     if ("patient".equals(role)) {
                         resp.sendRedirect(req.getContextPath() + "/patient?action=dashboard");
@@ -141,8 +186,8 @@ public class AuthFilter implements Filter {
 
         // ✅ Vérification spécifique pour /medecin
         if (chemin.startsWith("/medecin")) {
-            // Si ce n'est pas top5, seul le médecin peut accéder
-            if (!"medecin".equals(role)) {
+            // L'admin est autorisé à accéder à /medecin aussi
+            if (!"medecin".equals(role) && !"admin".equals(role)) {
                 System.out.println("[AuthFilter] Accès à /medecin refusé pour " + role);
                 if ("patient".equals(role)) {
                     resp.sendRedirect(req.getContextPath() + "/patient?action=dashboard");
@@ -153,17 +198,17 @@ public class AuthFilter implements Filter {
             }
         }
 
-        // ✅ Pour /patient, tout le monde peut y accéder (c'est le dashboard patient)
-        // Mais on vérifie quand même que c'est un patient
-        if (chemin.startsWith("/patient") && !"patient".equals(role) && !"medecin".equals(role)) {
+        // ✅ Pour /patient, tout le monde peut y accéder
+        if (chemin.startsWith("/patient") && !"patient".equals(role) && !"medecin".equals(role) && !"admin".equals(role)) {
             System.out.println("[AuthFilter] Accès à /patient refusé - rôle invalide: " + role);
             resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
             return;
         }
 
-        // ✅ Exception spéciale: médecin qui veut voir la liste des patients
-        if (chemin.startsWith("/patient") && queryString != null && queryString.contains("action=liste") && "medecin".equals(role)) {
-            System.out.println("[AuthFilter] Médecin accède à la liste des patients - autorisé");
+        // ✅ Exception spéciale: médecin ou admin qui veut voir la liste des patients
+        if (chemin.startsWith("/patient") && queryString != null && queryString.contains("action=liste")
+                && ("medecin".equals(role) || "admin".equals(role))) {
+            System.out.println("[AuthFilter] Médecin/Admin accède à la liste des patients - autorisé");
             chain.doFilter(request, response);
             return;
         }

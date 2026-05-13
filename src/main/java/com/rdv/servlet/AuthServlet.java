@@ -35,7 +35,7 @@ public class AuthServlet extends HttpServlet {
             if (session != null) {
                 session.invalidate();
             }
-            resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
+            resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp?logout=success");
             return;
         }
 
@@ -73,58 +73,71 @@ public class AuthServlet extends HttpServlet {
     }
 
     private void traiterConnexion(HttpServletRequest req, HttpServletResponse resp)
-        throws IOException, ServletException {
+            throws IOException, ServletException {
 
-            String email = req.getParameter("email");
-            String password = req.getParameter("password");
-            String remember = req.getParameter("remember");
+        String email = req.getParameter("email");
+        String password = req.getParameter("password");
+        String remember = req.getParameter("remember");
+        String roleParam = req.getParameter("role");
 
-            System.out.println("[AuthServlet] Tentative connexion - Email: " + email);
+        System.out.println("[AuthServlet] Tentative connexion - Email: " + email + ", Role demandé: " + roleParam);
 
-            boolean authentifie = false;
-            HttpSession session = req.getSession();
+        boolean authentifie = false;
+        HttpSession session = req.getSession();
 
-            // 1. Essayer patient
-            Patient patient = patientService.connecter(email, password);
-            if (patient != null) {
+        // 1. Essayer patient
+        Patient patient = patientService.connecter(email, password);
+        if (patient != null) {
+            authentifie = true;
+            session.setAttribute("utilisateur", patient);
+            session.setAttribute("role", "patient");
+            session.setAttribute("idUtilisateur", patient.getIdpat());
+            saveEmailToCookie(req, resp, email, "patient");
+            System.out.println("[AuthServlet] Patient connecté - ID: " + patient.getIdpat());
+        } else {
+            // 2. Si patient non trouvé, essayer médecin
+            Medecin medecin = medecinService.connecter(email, password);
+            if (medecin != null) {
                 authentifie = true;
-                session.setAttribute("utilisateur", patient);
-                session.setAttribute("role", "patient");
-                session.setAttribute("idUtilisateur", patient.getIdpat());
-                saveEmailToCookie(req, resp, email, "patient");
-                System.out.println("[AuthServlet] Patient connecté - ID: " + patient.getIdpat());
-            } else {
-                // 2. Si patient non trouvé, essayer médecin
-                Medecin medecin = medecinService.connecter(email, password);
-                if (medecin != null) {
-                    authentifie = true;
-                    session.setAttribute("utilisateur", medecin);
+                session.setAttribute("utilisateur", medecin);
+
+                // Détecter l'admin
+                if ("admin@rdv.com".equals(medecin.getEmail())) {
+                    session.setAttribute("role", "admin");
+                    saveEmailToCookie(req, resp, email, "admin");
+                    System.out.println("[AuthServlet] ADMIN connecté - Email: " + medecin.getEmail());
+                } else {
                     session.setAttribute("role", "medecin");
-                    session.setAttribute("idUtilisateur", medecin.getIdmed());
                     saveEmailToCookie(req, resp, email, "medecin");
-                    System.out.println("[AuthServlet] Médecin connecté - ID: " + medecin.getIdmed());
-                }
-            }
-
-            if (authentifie) {
-                if ("true".equals(remember)) {
-                    session.setMaxInactiveInterval(60 * 60 * 24 * 7); // 7 jours
-                } else {
-                    session.setMaxInactiveInterval(60 * 30); // 30 minutes
                 }
 
-                String role = (String) session.getAttribute("role");
-                if ("medecin".equals(role)) {
-                    resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
-                } else {
-                    resp.sendRedirect(req.getContextPath() + "/patient?action=dashboard");
-                }
-            } else {
-                req.setAttribute("erreur", "Email ou mot de passe incorrect.");
-                req.getRequestDispatcher("/views/shared/login.jsp").forward(req, resp);
+                session.setAttribute("idUtilisateur", medecin.getIdmed());
+                System.out.println("[AuthServlet] Médecin connecté - ID: " + medecin.getIdmed());
             }
         }
-        
+
+        if (authentifie) {
+            if ("true".equals(remember)) {
+                session.setMaxInactiveInterval(60 * 60 * 24 * 7); // 7 jours
+            } else {
+                session.setMaxInactiveInterval(60 * 30); // 30 minutes
+            }
+
+            String role = (String) session.getAttribute("role");
+
+            if ("admin".equals(role)) {
+                resp.sendRedirect(req.getContextPath() + "/admin?action=dashboard");
+            } else if ("medecin".equals(role)) {
+                resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
+            } else {
+                resp.sendRedirect(req.getContextPath() + "/patient?action=dashboard");
+            }
+        } else {
+            req.setAttribute("erreur", "Email ou mot de passe incorrect.");
+            req.getRequestDispatcher("/views/shared/login.jsp").forward(req, resp);
+        }
+    }
+
     private void traiterInscription(HttpServletRequest req, HttpServletResponse resp)
             throws IOException, ServletException {
 
@@ -276,16 +289,21 @@ public class AuthServlet extends HttpServlet {
                 }
             }
         }
+
+        // Supprimer l'email s'il existe déjà (pour le remettre en premier)
         emails.removeIf(e -> e.equals(newEmail));
+
+        // Ajouter en premier
         emails.add(0, newEmail);
 
+        // Garder seulement les 5 derniers
         if (emails.size() > 5) {
             emails = emails.subList(0, 5);
         }
 
         String newValue = String.join("|", emails);
         Cookie emailCookie = new Cookie(cookieName, newValue);
-        emailCookie.setMaxAge(60 * 60 * 24 * 30);
+        emailCookie.setMaxAge(60 * 60 * 24 * 30); // 30 jours
         emailCookie.setPath("/");
         resp.addCookie(emailCookie);
     }

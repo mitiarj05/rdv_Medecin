@@ -75,6 +75,13 @@ public class MedecinService {
         return medecinDAO.listerTous();
     }
 
+    /**
+     * Liste tous les médecins SANS exclure l'admin (pour l'affichage spécial admin)
+     */
+    public List<Medecin> listerTousAvecAdmin() {
+        return medecinDAO.listerTousAvecAdmin();
+    }
+
     public Medecin trouverParId(String idmed) {
         return medecinDAO.trouverParId(idmed);
     }
@@ -155,7 +162,7 @@ public class MedecinService {
     public boolean modifierMotDePasse(Medecin medecin) {
         if (medecin == null || medecin.getIdmed() == null) return false;
 
-        String sql = "UPDATE medecin SET mot_de_passe = ? WHERE idmed = ?";
+        String sql = "UPDATE medecin SET mot_de_passe = ? WHERE idmed::text = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, medecin.getMotDePasse());

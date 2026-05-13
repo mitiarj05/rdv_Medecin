@@ -174,6 +174,12 @@ public class RdvService {
     public List<String> listerHeuresPrisesParDate(String idmed, String date) {
         return rdvDAO.listerHeuresPrisesParDate(idmed, date, null);
     }
-}
 
-    
+    // ── TOP 5 PATIENTS LES PLUS ACTIFS (NOUVELLE MÉTHODE) ─────────────────────
+    /**
+     * Récupère le top 5 des patients ayant le plus de rendez-vous confirmés
+     */
+    public List<Object[]> top5PlusActifs() {
+        return rdvDAO.top5PlusActifs();
+    }
+}

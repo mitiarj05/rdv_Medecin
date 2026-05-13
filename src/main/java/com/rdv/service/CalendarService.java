@@ -16,12 +16,20 @@ public class CalendarService {
 
     /**
      * Récupère les rendez-vous pour un mois donné
+     * - Pour admin : tous les rendez-vous de tous les médecins
+     * - Pour médecin : ses rendez-vous uniquement
+     * - Pour patient : ses rendez-vous uniquement
      */
     public Map<Integer, List<CalendarRdv>> getRdvsByMonth(String idUtilisateur, String role, int year, int month) {
         Map<Integer, List<CalendarRdv>> rdvMap = new HashMap<>();
 
         List<Rdv> rdvs;
-        if ("medecin".equals(role)) {
+
+        // 🔥 ADMIN : Récupérer TOUS les rendez-vous
+        if ("admin".equals(role)) {
+            rdvs = rdvService.listerTous();
+            System.out.println("[CalendarService] Admin - Affichage de tous les RDV: " + (rdvs != null ? rdvs.size() : 0) + " RDV");
+        } else if ("medecin".equals(role)) {
             rdvs = rdvService.listerParMedecin(idUtilisateur);
         } else {
             rdvs = rdvService.listerParPatient(idUtilisateur);
@@ -43,7 +51,14 @@ public class CalendarService {
                     calRdv.setHeure(dateTime.format(DateTimeFormatter.ofPattern("HH:mm")));
                     calRdv.setStatut(rdv.getStatut());
 
-                    if ("medecin".equals(role)) {
+                    // 🔥 ADMIN : Afficher les informations complètes (médecin + patient)
+                    if ("admin".equals(role)) {
+                        calRdv.setNom(rdv.getPatient() != null ? rdv.getPatient().getNomPat() : "Patient");
+                        calRdv.setEmail(rdv.getPatient() != null ? rdv.getPatient().getEmail() : "");
+                        calRdv.setMedecinNom(rdv.getMedecin() != null ? "Dr. " + rdv.getMedecin().getNommed() : "Médecin");
+                        calRdv.setMedecinSpecialite(rdv.getMedecin() != null ? rdv.getMedecin().getSpecialite() : "");
+                        calRdv.setLieu(rdv.getMedecin() != null ? rdv.getMedecin().getLieu() : "");
+                    } else if ("medecin".equals(role)) {
                         calRdv.setNom(rdv.getPatient() != null ? rdv.getPatient().getNomPat() : "Patient");
                         calRdv.setEmail(rdv.getPatient() != null ? rdv.getPatient().getEmail() : "");
                     } else {
@@ -103,6 +118,10 @@ public class CalendarService {
         private String specialite;
         private String lieu;
 
+        // 🔥 Nouveaux champs pour l'admin
+        private String medecinNom;
+        private String medecinSpecialite;
+
         public String getIdrdv() { return idrdv; }
         public void setIdrdv(String idrdv) { this.idrdv = idrdv; }
         public String getHeure() { return heure; }
@@ -117,6 +136,12 @@ public class CalendarService {
         public void setSpecialite(String specialite) { this.specialite = specialite; }
         public String getLieu() { return lieu; }
         public void setLieu(String lieu) { this.lieu = lieu; }
+
+        // 🔥 Getters/Setters pour l'admin
+        public String getMedecinNom() { return medecinNom; }
+        public void setMedecinNom(String medecinNom) { this.medecinNom = medecinNom; }
+        public String getMedecinSpecialite() { return medecinSpecialite; }
+        public void setMedecinSpecialite(String medecinSpecialite) { this.medecinSpecialite = medecinSpecialite; }
 
         public boolean isConfirme() { return "CONFIRME".equals(statut); }
     }
