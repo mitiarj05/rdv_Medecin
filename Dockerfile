@@ -1,12 +1,15 @@
-FROM maven:3.9-eclipse-temurin-17 AS build
-WORKDIR /app
-COPY pom.xml .
-RUN mvn dependency:go-offline
-COPY src ./src
-RUN mvn clean package -DskipTests
+# On utilise l'image officielle de Tomcat 10
+FROM tomcat:10.1-jdk17-temurin-jammy
 
-FROM eclipse-temurin:17-jre
-WORKDIR /app
-COPY --from=build /app/target/rdv-medical.war /app/rdv-medical.war
+# On supprime les applications par défaut de Tomcat
+RUN rm -rf /usr/local/tomcat/webapps/*
+
+# On copie notre fichier WAR dans le dossier webapps de Tomcat
+# Le fichier WAR doit s'appeler ROOT.war pour qu'il soit accessible à la racine
+COPY target/rdv-medical.war /usr/local/tomcat/webapps/ROOT.war
+
+# Le port 8080 est exposé par défaut
 EXPOSE 8080
-CMD ["java", "-jar", "rdv-medical.war"]
+
+# On démarre Tomcat
+CMD ["catalina.sh", "run"]
