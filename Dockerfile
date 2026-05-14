@@ -9,6 +9,9 @@ RUN mvn clean package -DskipTests
 
 FROM tomcat:10.1-jdk17
 
+# Installer unzip (nécessaire pour extraire le WAR)
+RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/*
+
 # Supprimer l'application par défaut
 RUN rm -rf /usr/local/tomcat/webapps/*
 
