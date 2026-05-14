@@ -22,7 +22,7 @@
     <a href="${pageContext.request.contextPath}/views/shared/register.jsp" class="btn">📝 Inscription</a>
     
     <div class="status">
-        ✅ Application déployée avec succès sur Render !
+        ✅ Application déployée avec succès !
     </div>
 </div>
 </body>

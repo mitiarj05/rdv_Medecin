@@ -1,11 +1,11 @@
 services:
   - type: web
     name: rdv-medical
-    runtime: docker  # ← CHANGÉ de "image" à "docker"
+    runtime: docker
     repo: https://github.com/mitiarj05/rdv_Medecin
     branch: amelioration2
     plan: free
-    dockerfilePath: ./Dockerfile  # ← OK maintenant
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: MAIL_USERNAME
         value: mitiarj05@gmail.com
@@ -29,3 +29,4 @@ databases:
     databaseName: rdv_medecin
     user: rdv_user
     plan: free
+    postgresMajorVersion: 16
