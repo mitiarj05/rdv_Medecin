@@ -9,9 +9,6 @@ RUN mvn clean package -DskipTests
 
 FROM tomcat:10.1-jdk17
 
-# Installer unzip
-RUN apt-get update && apt-get install -y unzip
-
 # Supprimer les apps par défaut
 RUN rm -rf /usr/local/tomcat/webapps/*
 
@@ -25,10 +22,8 @@ RUN cd /usr/local/tomcat/webapps/ROOT && \
     rm /tmp/app.war
 
 # Vérifier les fichiers
-RUN echo "=== CONTENU DE ROOT ===" && \
-    ls -la /usr/local/tomcat/webapps/ROOT/ && \
-    echo "=== CONTENU DE views/shared ===" && \
-    ls -la /usr/local/tomcat/webapps/ROOT/views/shared/ || echo "views/shared n'existe pas"
+RUN ls -la /usr/local/tomcat/webapps/ROOT/
+RUN ls -la /usr/local/tomcat/webapps/ROOT/views/shared/ || echo "views/shared manquant"
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
