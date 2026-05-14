@@ -1,34 +1,29 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee 
-         https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
-         version="6.0">
-
-    <display-name>RDV Medical</display-name>
-
-    <servlet>
-        <servlet-name>jsp</servlet-name>
-        <servlet-class>org.apache.jasper.servlet.JspServlet</servlet-class>
-        <init-param>
-            <param-name>checkInterval</param-name>
-            <param-value>0</param-value>
-        </init-param>
-        <init-param>
-            <param-name>development</param-name>
-            <param-value>true</param-value>
-        </init-param>
-        <load-on-startup>3</load-on-startup>
-    </servlet>
-
-    <servlet-mapping>
-        <servlet-name>jsp</servlet-name>
-        <url-pattern>*.jsp</url-pattern>
-        <url-pattern>*.jspx</url-pattern>
-    </servlet-mapping>
-
-    <welcome-file-list>
-        <welcome-file>index.jsp</welcome-file>
-    </welcome-file-list>
-
-</web-app>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>RDV Medical</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #e8f0fe, #ffffff); margin: 0; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; padding: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h1 { color: #1a73e8; margin-bottom: 20px; }
+        .btn { display: inline-block; padding: 12px 24px; margin: 10px; background: #1a73e8; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; transition: all 0.3s ease; }
+        .btn:hover { background: #0d47a1; transform: translateY(-2px); }
+        .status { margin-top: 20px; padding: 10px; background: #e6f4ea; border-radius: 8px; color: #137333; font-size: 14px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🏥 RDV Medical</h1>
+    <p>Système de gestion de rendez-vous médicaux</p>
+    
+    <a href="${pageContext.request.contextPath}/views/shared/login.jsp" class="btn">🔐 Connexion</a>
+    <a href="${pageContext.request.contextPath}/views/shared/register.jsp" class="btn">📝 Inscription</a>
+    
+    <div class="status">
+        ✅ Application déployée avec succès sur Render !
+    </div>
+</div>
+</body>
+</html>
