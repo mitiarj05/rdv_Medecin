@@ -7,12 +7,12 @@ RUN mvn dependency:go-offline
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-# 🔥 VÉRIFICATION : Lister les fichiers pour déboguer
-RUN ls -la /app/target/
+# 🔥 AJOUTEZ CETTE LIGNE POUR VOIR LE CONTENU DU WAR
+RUN jar tf /app/target/rdv-medical.war | grep -E "\.jsp|views" | head -20
 
 FROM tomcat:10.1-jdk17
 RUN rm -rf /usr/local/tomcat/webapps/*
-COPY --from=build /app/target/*.war /usr/local/tomcat/webapps/ROOT.war
+COPY --from=build /app/target/rdv-medical.war /usr/local/tomcat/webapps/ROOT.war
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
