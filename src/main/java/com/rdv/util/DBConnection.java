@@ -23,7 +23,7 @@ public class DBConnection {
 
     /**
      * Initialise le pool de connexions au démarrage de l'application.
-     * Lit la configuration depuis db.properties.
+     * Priorité aux variables d'environnement (Render), puis fichier db.properties.
      */
     public static void init() {
         if (initialized) {
@@ -32,39 +32,47 @@ public class DBConnection {
         }
 
         try {
-            // Charger le fichier db.properties depuis le classpath
-            Properties props = new Properties();
-            InputStream input = DBConnection.class
-                    .getClassLoader()
-                    .getResourceAsStream("db.properties");
-
-            if (input == null) {
-                throw new RuntimeException("Fichier db.properties introuvable !");
-            }
-            props.load(input);
-
-            // Configurer HikariCP
             HikariConfig config = new HikariConfig();
-            config.setJdbcUrl(props.getProperty("db.url"));
-            config.setUsername(props.getProperty("db.username"));
-            config.setPassword(props.getProperty("db.password"));
+            
+            // 🔥 PRIORITÉ AUX VARIABLES D'ENVIRONNEMENT (Render)
+            String dbUrl = System.getenv("DB_URL");
+            String dbUsername = System.getenv("DB_USERNAME");
+            String dbPassword = System.getenv("DB_PASSWORD");
+            
+            System.out.println("[DBConnection] DB_URL from env: " + (dbUrl != null ? "✓ trouvé" : "✗ non trouvé"));
+            System.out.println("[DBConnection] DB_USERNAME from env: " + (dbUsername != null ? "✓ trouvé" : "✗ non trouvé"));
+            
+            if (dbUrl != null && dbUsername != null && dbPassword != null) {
+                config.setJdbcUrl(dbUrl);
+                config.setUsername(dbUsername);
+                config.setPassword(dbPassword);
+                System.out.println("[DBConnection] ✅ Utilisation des variables d'environnement Render");
+            } else {
+                // Fallback sur db.properties pour le développement local
+                System.out.println("[DBConnection] Variables d'env non trouvées, lecture de db.properties...");
+                Properties props = new Properties();
+                InputStream input = DBConnection.class
+                        .getClassLoader()
+                        .getResourceAsStream("db.properties");
+
+                if (input == null) {
+                    throw new RuntimeException("Fichier db.properties introuvable et variables d'environnement non définies !");
+                }
+                props.load(input);
+                
+                config.setJdbcUrl(props.getProperty("db.url"));
+                config.setUsername(props.getProperty("db.username"));
+                config.setPassword(props.getProperty("db.password"));
+                System.out.println("[DBConnection] Utilisation du fichier db.properties (mode développement)");
+            }
 
             // Paramètres du pool
-            config.setMaximumPoolSize(
-                    Integer.parseInt(props.getProperty("db.pool.maximumPoolSize", "10")));
-            config.setMinimumIdle(
-                    Integer.parseInt(props.getProperty("db.pool.minimumIdle", "2")));
-            config.setConnectionTimeout(
-                    Long.parseLong(props.getProperty("db.pool.connectionTimeout", "30000")));
-            config.setIdleTimeout(
-                    Long.parseLong(props.getProperty("db.pool.idleTimeout", "600000")));
-            config.setMaxLifetime(
-                    Long.parseLong(props.getProperty("db.pool.maxLifetime", "1800000")));
-
-            // Nom du pool (utile pour les logs)
+            config.setMaximumPoolSize(10);
+            config.setMinimumIdle(2);
+            config.setConnectionTimeout(30000);
+            config.setIdleTimeout(600000);
+            config.setMaxLifetime(1800000);
             config.setPoolName("RdvMedicalPool");
-
-            // Driver PostgreSQL
             config.setDriverClassName("org.postgresql.Driver");
 
             // Paramètres supplémentaires pour PostgreSQL
@@ -74,8 +82,7 @@ public class DBConnection {
 
             dataSource = new HikariDataSource(config);
             initialized = true;
-            System.out.println("[DBConnection] Pool PostgreSQL initialisé avec succès.");
-            System.out.println("[DBConnection] URL: " + props.getProperty("db.url"));
+            System.out.println("[DBConnection] ✅ Pool PostgreSQL initialisé avec succès.");
 
         } catch (IOException e) {
             throw new RuntimeException("Erreur lecture db.properties : " + e.getMessage(), e);
