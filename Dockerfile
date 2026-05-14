@@ -9,22 +9,24 @@ RUN mvn clean package -DskipTests
 
 FROM tomcat:10.1-jdk17
 
-# Installer curl uniquement (pas besoin de unzip)
-RUN apt-get update && apt-get install -y curl
-
 # Supprimer l'application par défaut
 RUN rm -rf /usr/local/tomcat/webapps/*
 
-# Copier le WAR directement - Tomcat le décompresse automatiquement
-COPY --from=build /app/target/rdv-medical.war /usr/local/tomcat/webapps/ROOT.war
+# Copier les fichiers web et les classes compilées
+COPY src/main/webapp /usr/local/tomcat/webapps/ROOT
+COPY --from=build /app/target/rdv-medical/WEB-INF/classes /usr/local/tomcat/webapps/ROOT/WEB-INF/classes
+COPY --from=build /app/target/rdv-medical/WEB-INF/lib /usr/local/tomcat/webapps/ROOT/WEB-INF/lib
 
-# Attendre que Tomcat décompresse (au démarrage)
-# Télécharger JSTL dans le bon dossier
+# Télécharger JSTL (au cas où)
 RUN mkdir -p /usr/local/tomcat/webapps/ROOT/WEB-INF/lib
+RUN apt-get update && apt-get install -y curl
 RUN curl -L -o /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/jakarta.servlet.jsp.jstl-api-3.0.0.jar \
-    https://repo1.maven.org/maven2/jakarta/servlet/jsp/jstl/jakarta.servlet.jsp.jstl-api/3.0.0/jakarta.servlet.jsp.jstl-api-3.0.0.jar || echo "JSTL API download failed"
+    https://repo1.maven.org/maven2/jakarta/servlet/jsp/jstl/jakarta.servlet.jsp.jstl-api/3.0.0/jakarta.servlet.jsp.jstl-api-3.0.0.jar
 RUN curl -L -o /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/jakarta.servlet.jsp.jstl-3.0.1.jar \
-    https://repo1.maven.org/maven2/org/glassfish/web/jakarta.servlet.jsp.jstl/3.0.1/jakarta.servlet.jsp.jstl-3.0.1.jar || echo "JSTL impl download failed"
+    https://repo1.maven.org/maven2/org/glassfish/web/jakarta.servlet.jsp.jstl/3.0.1/jakarta.servlet.jsp.jstl-3.0.1.jar
+
+# Vérification
+RUN echo "=== Classes servlet ===" && ls -la /usr/local/tomcat/webapps/ROOT/WEB-INF/classes/com/rdv/servlet/ 2>/dev/null || echo "Dossier servlet non trouvé"
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
