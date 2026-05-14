@@ -2,7 +2,8 @@ services:
   - type: web
     name: rdv-medical
     runtime: image
-    repo: https://github.com/mitiarj05@gmail.com/rdv-medical
+    repo: https://github.com/mitiarj05/rdv_Medecin  # ⚠️ CORRIGÉ
+    branch: amelioration2  # ⚠️ AJOUTEZ CELLE-CI
     plan: free
     dockerfilePath: ./Dockerfile
     envVars:
@@ -22,6 +23,18 @@ services:
         value: mitiarj05@gmail.com
       - key: MAIL_PASSWORD
         value: flfz tyrh tpih pjsa
+      - key: JDBC_DATABASE_URL
+        fromDatabase:
+          name: rdv-medical-db
+          property: connectionString
+      - key: JDBC_DATABASE_USERNAME
+        fromDatabase:
+          name: rdv-medical-db
+          property: user
+      - key: JDBC_DATABASE_PASSWORD
+        fromDatabase:
+          name: rdv-medical-db
+          property: password
 
 databases:
   - name: rdv-medical-db
