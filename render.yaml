@@ -1,12 +1,16 @@
 services:
   - type: web
     name: rdv-medical
-    runtime: image
-    repo: https://github.com/mitiarj05/rdv_Medecin  # ⚠️ CORRIGÉ
-    branch: amelioration2  # ⚠️ AJOUTEZ CELLE-CI
+    runtime: docker  # ← CHANGÉ de "image" à "docker"
+    repo: https://github.com/mitiarj05/rdv_Medecin
+    branch: amelioration2
     plan: free
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./Dockerfile  # ← OK maintenant
     envVars:
+      - key: MAIL_USERNAME
+        value: mitiarj05@gmail.com
+      - key: MAIL_PASSWORD
+        value: flfz tyrh tpih pjsa
       - key: DB_URL
         fromDatabase:
           name: rdv-medical-db
@@ -16,22 +20,6 @@ services:
           name: rdv-medical-db
           property: user
       - key: DB_PASSWORD
-        fromDatabase:
-          name: rdv-medical-db
-          property: password
-      - key: MAIL_USERNAME
-        value: mitiarj05@gmail.com
-      - key: MAIL_PASSWORD
-        value: flfz tyrh tpih pjsa
-      - key: JDBC_DATABASE_URL
-        fromDatabase:
-          name: rdv-medical-db
-          property: connectionString
-      - key: JDBC_DATABASE_USERNAME
-        fromDatabase:
-          name: rdv-medical-db
-          property: user
-      - key: JDBC_DATABASE_PASSWORD
         fromDatabase:
           name: rdv-medical-db
           property: password
