@@ -1,28 +1,44 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
-         https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
-         version="6.0"
-          metadata-complete="false">
+FROM maven:3.9-eclipse-temurin-17 AS build
 
-    <display-name>RDV Medical</display-name>
+WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline
 
-    <welcome-file-list>
-        <welcome-file>index.jsp</welcome-file>
-    </welcome-file-list>
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-    <filter>
-        <filter-name>encodingFilter</filter-name>
-        <filter-class>org.apache.catalina.filters.SetCharacterEncodingFilter</filter-class>
-        <init-param>
-            <param-name>encoding</param-name>
-            <param-value>UTF-8</param-value>
-        </init-param>
-    </filter>
-    <filter-mapping>
-        <filter-name>encodingFilter</filter-name>
-        <url-pattern>/*</url-pattern>
-    </filter-mapping>
+FROM tomcat:10.1-jdk17
 
-</web-app>
+# Installer curl
+RUN apt-get update && apt-get install -y curl
+
+# Supprimer l'application par défaut
+RUN rm -rf /usr/local/tomcat/webapps/*
+
+# Copier les fichiers web (JSP, HTML, etc.)
+COPY src/main/webapp /usr/local/tomcat/webapps/ROOT
+
+# 🔥 COPIER LES CLASSES COMPILÉES
+COPY --from=build /app/target/classes /usr/local/tomcat/webapps/ROOT/WEB-INF/classes
+
+# 🔥 COPIER TOUTES LES DÉPENDANCES
+RUN mkdir -p /usr/local/tomcat/webapps/ROOT/WEB-INF/lib
+COPY --from=build /app/target/rdv-medical/WEB-INF/lib/*.jar /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/
+
+# Télécharger JSTL au cas où
+RUN curl -L -o /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/jakarta.servlet.jsp.jstl-api-3.0.0.jar \
+    https://repo1.maven.org/maven2/jakarta/servlet/jsp/jstl/jakarta.servlet.jsp.jstl-api/3.0.0/jakarta.servlet.jsp.jstl-api-3.0.0.jar
+RUN curl -L -o /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/jakarta.servlet.jsp.jstl-3.0.1.jar \
+    https://repo1.maven.org/maven2/org/glassfish/web/jakarta.servlet.jsp.jstl/3.0.1/jakarta.servlet.jsp.jstl-3.0.1.jar
+
+# Copier web.xml
+COPY src/main/webapp/WEB-INF/web.xml /usr/local/tomcat/webapps/ROOT/WEB-INF/web.xml
+
+# Vérification finale
+RUN echo "=== Vérification des classes ===" && \
+    ls -la /usr/local/tomcat/webapps/ROOT/WEB-INF/classes/ && \
+    echo "=== Vérification des JARs ===" && \
+    ls -la /usr/local/tomcat/webapps/ROOT/WEB-INF/lib/ | head -20
+
+EXPOSE 8080
+CMD ["catalina.sh", "run"]
