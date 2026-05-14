@@ -23,6 +23,7 @@ services:
         fromDatabase:
           name: rdv-medical-db
           property: password
+    healthCheckPath: /test.html
 
 databases:
   - name: rdv-medical-db

@@ -9,24 +9,28 @@ RUN mvn clean package -DskipTests
 
 FROM tomcat:10.1-jdk17
 
-# Installer unzip et curl
-RUN apt-get update && apt-get install -y unzip curl
-
 # Supprimer l'application par défaut
 RUN rm -rf /usr/local/tomcat/webapps/*
 
 # Copier le WAR
 COPY --from=build /app/target/rdv-medical.war /usr/local/tomcat/webapps/ROOT.war
 
-# Décompresser le WAR (cela extrait TOUTES les classes et JSP)
+# Extraire correctement le WAR dans ROOT/
 RUN cd /usr/local/tomcat/webapps && \
-    unzip -q ROOT.war -d ROOT && \
-    rm ROOT.war
+    mkdir -p ROOT && \
+    cd ROOT && \
+    unzip -q ../ROOT.war && \
+    cd .. && \
+    rm ROOT.war && \
+    chmod -R 755 ROOT
 
-# Vérifier que les servlets sont bien présentes
-RUN echo "=== Vérification des servlets ===" && \
-    ls -la /usr/local/tomcat/webapps/ROOT/WEB-INF/classes/com/rdv/servlet/ && \
-    echo "=== Fin vérification ==="
+# Vérification que les JSP sont bien présentes
+RUN echo "=== Vérification des fichiers JSP ===" && \
+    ls -la /usr/local/tomcat/webapps/ROOT/ && \
+    echo "=== Vérification views/shared ===" && \
+    ls -la /usr/local/tomcat/webapps/ROOT/views/shared/ && \
+    echo "=== Vérification WEB-INF ===" && \
+    ls -la /usr/local/tomcat/webapps/ROOT/WEB-INF/
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
