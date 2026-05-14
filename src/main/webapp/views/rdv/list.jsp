@@ -64,9 +64,10 @@
                         </thead>
                         <tbody>
                             <c:forEach var="r" items="${rdvs}">
-                                <tr>
-                                    <c:choose>
-                                        <c:when test="${sessionScope.role == 'medecin'}">
+                                <c:choose>
+                                    <c:when test="${sessionScope.role == 'medecin'}">
+                                        <!-- Ligne pour le médecin -->
+                                        <tr>
                                             <td>
                                                 <div class="patient-info">
                                                     <div class="avatar">${fn:substring(r.patient.nomPat, 0, 1)}</div>
@@ -78,60 +79,115 @@
                                                     <i class="fas fa-envelope"></i>
                                                     <span>${r.patient.email}</span>
                                                 </div>
-                                            </c:when>
-                                        <c:otherwise>
+                                            </td>
+                                            <td>
+                                                <div class="info-cell">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                    <span>${r.dateFormatee}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="info-cell">
+                                                    <i class="fas fa-map-marker-alt"></i>
+                                                    <span>${r.medecin.lieu}</span>
+                                                </div>
+                                            </td>
+                                            <td style="text-align:center;">
+                                                <c:choose>
+                                                    <c:when test="${r.statut == 'CONFIRME'}">
+                                                        <span class="badge-status confirmed"><i class="fas fa-check-circle"></i> Confirmé</span>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <span class="badge-status cancelled"><i class="fas fa-times-circle"></i> Annulé</span>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td style="text-align:center;">
+                                                <c:choose>
+                                                    <c:when test="${r.statut == 'CONFIRME'}">
+                                                        <a href="${pageContext.request.contextPath}/rdv?action=edit&id=${r.idrdv}" class="btn btn-warning btn-sm">
+                                                            <i class="fas fa-edit"></i> Modifier
+                                                        </a>
+                                                        <a href="${pageContext.request.contextPath}/rdv?action=annuler&id=${r.idrdv}" class="btn btn-danger btn-sm"
+                                                           onclick="return confirm('Annuler ce rendez-vous ? Un email sera envoyé.')">
+                                                            <i class="fas fa-times"></i> Annuler
+                                                        </a>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <a href="${pageContext.request.contextPath}/rdv?action=edit&id=${r.idrdv}" class="btn btn-warning btn-sm">
+                                                            <i class="fas fa-edit"></i> Modifier
+                                                        </a>
+                                                        <a href="${pageContext.request.contextPath}/rdv?action=supprimer&id=${r.idrdv}" class="btn btn-secondary btn-sm"
+                                                           onclick="return confirm('Supprimer définitivement ce RDV ?')">
+                                                            <i class="fas fa-trash-alt"></i> Supprimer
+                                                        </a>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                        </tr>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <!-- Ligne pour le patient -->
+                                        <tr>
                                             <td>
                                                 <div class="patient-info">
                                                     <div class="avatar doctor-avatar">${fn:substring(r.medecin.nommed, 0, 1)}</div>
                                                     <strong>Dr. ${r.medecin.nommed}</strong>
                                                 </div>
-                                            </c:otherwise>
-                                    </c:choose>
-                                    <td>
-                                        <div class="info-cell">
-                                            <i class="fas fa-calendar-alt"></i>
-                                            <span>${r.dateFormatee}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="info-cell">
-                                            <i class="fas fa-map-marker-alt"></i>
-                                            <span>${r.medecin.lieu}</span>
-                                        </div>
-                                    </td>
-                                    <td style="text-align:center;">
-                                        <c:choose>
-                                            <c:when test="${r.statut == 'CONFIRME'}">
-                                                <span class="badge-status confirmed"><i class="fas fa-check-circle"></i> Confirmé</span>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <span class="badge-status cancelled"><i class="fas fa-times-circle"></i> Annulé</span>
-                                            </c:otherwise>
-                                        </c:choose>
-                                    </td>
-                                    <td style="text-align:center;">
-                                        <c:choose>
-                                            <c:when test="${r.statut == 'CONFIRME'}">
-                                                <a href="${pageContext.request.contextPath}/rdv?action=edit&id=${r.idrdv}" class="btn btn-warning btn-sm">
-                                                    <i class="fas fa-edit"></i> Modifier
-                                                </a>
-                                                <a href="${pageContext.request.contextPath}/rdv?action=annuler&id=${r.idrdv}" class="btn btn-danger btn-sm"
-                                                   onclick="return confirm('Annuler ce rendez-vous ? Un email sera envoyé.')">
-                                                    <i class="fas fa-times"></i> Annuler
-                                                </a>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <a href="${pageContext.request.contextPath}/rdv?action=edit&id=${r.idrdv}" class="btn btn-warning btn-sm">
-                                                    <i class="fas fa-edit"></i> Modifier
-                                                </a>
-                                                <a href="${pageContext.request.contextPath}/rdv?action=supprimer&id=${r.idrdv}" class="btn btn-secondary btn-sm"
-                                                   onclick="return confirm('Supprimer définitivement ce RDV ?')">
-                                                    <i class="fas fa-trash-alt"></i> Supprimer
-                                                </a>
-                                            </c:otherwise>
-                                        </c:choose>
-                                    </td>
-                                </tr>
+                                            </td>
+                                            <td>
+                                                <div class="info-cell">
+                                                    <i class="fas fa-stethoscope"></i>
+                                                    <span>${r.medecin.specialite != null ? r.medecin.specialite : 'Non spécifiée'}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="info-cell">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                    <span>${r.dateFormatee}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="info-cell">
+                                                    <i class="fas fa-map-marker-alt"></i>
+                                                    <span>${r.medecin.lieu}</span>
+                                                </div>
+                                            </td>
+                                            <td style="text-align:center;">
+                                                <c:choose>
+                                                    <c:when test="${r.statut == 'CONFIRME'}">
+                                                        <span class="badge-status confirmed"><i class="fas fa-check-circle"></i> Confirmé</span>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <span class="badge-status cancelled"><i class="fas fa-times-circle"></i> Annulé</span>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td style="text-align:center;">
+                                                <c:choose>
+                                                    <c:when test="${r.statut == 'CONFIRME'}">
+                                                        <a href="${pageContext.request.contextPath}/rdv?action=edit&id=${r.idrdv}" class="btn btn-warning btn-sm">
+                                                            <i class="fas fa-edit"></i> Modifier
+                                                        </a>
+                                                        <a href="${pageContext.request.contextPath}/rdv?action=annuler&id=${r.idrdv}" class="btn btn-danger btn-sm"
+                                                           onclick="return confirm('Annuler ce rendez-vous ? Un email sera envoyé.')">
+                                                            <i class="fas fa-times"></i> Annuler
+                                                        </a>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <a href="${pageContext.request.contextPath}/rdv?action=edit&id=${r.idrdv}" class="btn btn-warning btn-sm">
+                                                            <i class="fas fa-edit"></i> Modifier
+                                                        </a>
+                                                        <a href="${pageContext.request.contextPath}/rdv?action=supprimer&id=${r.idrdv}" class="btn btn-secondary btn-sm"
+                                                           onclick="return confirm('Supprimer définitivement ce RDV ?')">
+                                                            <i class="fas fa-trash-alt"></i> Supprimer
+                                                        </a>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                        </tr>
+                                    </c:otherwise>
+                                </c:choose>
                             </c:forEach>
                         </tbody>
                     </table>

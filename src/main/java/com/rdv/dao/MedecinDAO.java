@@ -18,6 +18,12 @@ public class MedecinDAO {
     // ── CREATE ───────────────────────────────────────────────────────────────
 
     public boolean inserer(Medecin medecin) {
+        // Vérifier si l'email existe déjà (chez médecin ou patient)
+        if (emailExiste(medecin.getEmail())) {
+            System.err.println("[MedecinDAO] L'email " + medecin.getEmail() + " est déjà utilisé par un autre compte");
+            return false;
+        }
+
         String sql = "INSERT INTO medecin (nommed, specialite, taux_horaire, lieu, email, mot_de_passe) " +
                 "VALUES (?, ?, ?, ?, ?, ?)";
 
@@ -37,6 +43,96 @@ public class MedecinDAO {
             System.err.println("[MedecinDAO] Erreur inserer : " + e.getMessage());
             return false;
         }
+    }
+
+    // ── VÉRIFICATION EMAIL ───────────────────────────────────────────────────
+
+    /**
+     * Vérifie si un email existe déjà chez les médecins ou les patients
+     * @param email L'email à vérifier
+     * @return true si l'email existe déjà, false sinon
+     */
+    public boolean emailExiste(String email) {
+        if (email == null || email.isEmpty()) {
+            return false;
+        }
+
+        // Vérifier dans la table medecin
+        String sqlMedecin = "SELECT COUNT(*) FROM medecin WHERE email = ?";
+        // Vérifier dans la table patient
+        String sqlPatient = "SELECT COUNT(*) FROM patient WHERE email = ?";
+        
+        try (Connection conn = DBConnection.getConnection()) {
+            // Vérifier chez les médecins
+            try (PreparedStatement ps = conn.prepareStatement(sqlMedecin)) {
+                ps.setString(1, email);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        System.out.println("[MedecinDAO] Email " + email + " trouvé chez un médecin");
+                        return true;
+                    }
+                }
+            }
+            
+            // Vérifier chez les patients
+            try (PreparedStatement ps = conn.prepareStatement(sqlPatient)) {
+                ps.setString(1, email);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        System.out.println("[MedecinDAO] Email " + email + " trouvé chez un patient");
+                        return true;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[MedecinDAO] Erreur lors de la vérification de l'email : " + e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Vérifie si un email appartient à un autre médecin (pour la modification)
+     * @param email L'email à vérifier
+     * @param idMedecin L'ID du médecin actuel (à exclure de la vérification)
+     * @return true si l'email existe chez un autre médecin ou chez un patient, false sinon
+     */
+    public boolean emailExistePourAutreMedecin(String email, String idMedecin) {
+        if (email == null || email.isEmpty() || idMedecin == null || idMedecin.isEmpty()) {
+            return false;
+        }
+
+        // Vérifier dans la table medecin (en excluant le médecin actuel)
+        String sqlMedecin = "SELECT COUNT(*) FROM medecin WHERE email = ? AND idmed::text != ?";
+        // Vérifier dans la table patient
+        String sqlPatient = "SELECT COUNT(*) FROM patient WHERE email = ?";
+        
+        try (Connection conn = DBConnection.getConnection()) {
+            // Vérifier chez les autres médecins
+            try (PreparedStatement ps = conn.prepareStatement(sqlMedecin)) {
+                ps.setString(1, email);
+                ps.setString(2, idMedecin);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        System.out.println("[MedecinDAO] Email " + email + " trouvé chez un autre médecin");
+                        return true;
+                    }
+                }
+            }
+            
+            // Vérifier chez les patients
+            try (PreparedStatement ps = conn.prepareStatement(sqlPatient)) {
+                ps.setString(1, email);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        System.out.println("[MedecinDAO] Email " + email + " trouvé chez un patient");
+                        return true;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[MedecinDAO] Erreur lors de la vérification de l'email : " + e.getMessage());
+        }
+        return false;
     }
 
     // ── READ ─────────────────────────────────────────────────────────────────
@@ -291,6 +387,13 @@ public class MedecinDAO {
 
     public boolean modifier(Medecin medecin) {
         if (medecin.getIdmed() == null || medecin.getIdmed().isEmpty()) {
+            System.err.println("[MedecinDAO] ID médecin invalide");
+            return false;
+        }
+
+        // Vérifier si l'email existe déjà chez un autre médecin ou chez un patient
+        if (emailExistePourAutreMedecin(medecin.getEmail(), medecin.getIdmed())) {
+            System.err.println("[MedecinDAO] Impossible de modifier: l'email " + medecin.getEmail() + " est déjà utilisé par un autre compte");
             return false;
         }
 
