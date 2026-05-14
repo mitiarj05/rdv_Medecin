@@ -1,14 +1,29 @@
-# 1. On prend une image Tomcat toute prête comme base
+# Étape 1 : Construction avec Maven (sur Render)
+FROM maven:3.9.6-eclipse-temurin-17 AS build
+
+WORKDIR /app
+
+# Copier le pom.xml d'abord (optimisation du cache)
+COPY pom.xml .
+RUN mvn dependency:go-offline
+
+# Copier tout le code source
+COPY src ./src
+
+# Compiler le projet et générer le WAR
+RUN mvn clean package -DskipTests
+
+# Étape 2 : Image finale Tomcat
 FROM tomcat:10.1-jdk17
 
-# 2. On supprime le contenu par défaut de Tomcat
+# Supprimer le contenu par défaut de Tomcat
 RUN rm -rf /usr/local/tomcat/webapps/*
 
-# 3. On copie ton application dans le dossier "ROOT" pour qu'elle soit accessible directement à la racine
-COPY target/rdv-medical.war /usr/local/tomcat/webapps/ROOT.war
+# Copier le WAR depuis l'étape de build
+COPY --from=build /app/target/rdv-medical.war /usr/local/tomcat/webapps/ROOT.war
 
-# 4. On expose le port sur lequel Tomcat écoute
+# Exposer le port
 EXPOSE 8080
 
-# 5. On démarre Tomcat
+# Démarrer Tomcat
 CMD ["catalina.sh", "run"]
