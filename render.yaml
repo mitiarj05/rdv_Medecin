@@ -1,9 +1,10 @@
 services:
   - type: web
     name: rdv-medical
-    runtime: java
-    buildCommand: mvn clean package
-    startCommand: java -jar target/rdv-medical.war
+    runtime: image
+    repo: https://github.com/mitiarj05@gmail.com/rdv-medical
+    plan: free
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: DB_URL
         fromDatabase:
@@ -17,8 +18,13 @@ services:
         fromDatabase:
           name: rdv-medical-db
           property: password
+      - key: MAIL_USERNAME
+        value: mitiarj05@gmail.com
+      - key: MAIL_PASSWORD
+        value: flfz tyrh tpih pjsa
 
 databases:
   - name: rdv-medical-db
     databaseName: rdv_medecin
     user: rdv_user
+    plan: free
