@@ -15,10 +15,6 @@ import jakarta.mail.Transport;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
-/**
- * Service d'envoi d'emails.
- * Utilisé pour confirmer ou annuler un rendez-vous.
- */
 public class MailService {
 
     private Properties mailProps;
@@ -30,42 +26,71 @@ public class MailService {
         chargerConfig();
     }
 
-    // ── Chargement de la configuration ───────────────────────────────────────
-
     private void chargerConfig() {
         try {
-            Properties props = new Properties();
-            InputStream input = getClass()
-                    .getClassLoader()
-                    .getResourceAsStream("mail.properties");
+            // 1. PRIORITÉ AUX VARIABLES D'ENVIRONNEMENT (Render)
+            String envUsername = System.getenv("MAIL_USERNAME");
+            String envPassword = System.getenv("MAIL_PASSWORD");
 
-            if (input == null) {
-                throw new RuntimeException("mail.properties introuvable !");
+            // 2. SI PAS DE VARIABLES D'ENV, on lit mail.properties
+            if (envUsername != null && envPassword != null && !envUsername.isEmpty() && !envPassword.isEmpty()) {
+                System.out.println("[MailService] ✅ Utilisation des variables d'environnement");
+                username = envUsername;
+                password = envPassword;
+                from = envUsername;
+
+                // Paramètres SMTP par défaut pour Gmail
+                mailProps = new Properties();
+                mailProps.put("mail.smtp.host", "smtp.gmail.com");
+                mailProps.put("mail.smtp.port", "587");
+                mailProps.put("mail.smtp.auth", "true");
+                mailProps.put("mail.smtp.starttls.enable", "true");
+                mailProps.put("mail.smtp.ssl.protocols", "TLSv1.2");
+                mailProps.put("mail.smtp.connectiontimeout", "5000");
+                mailProps.put("mail.smtp.timeout", "5000");
+                mailProps.put("mail.smtp.writetimeout", "5000");
+
+            } else {
+                System.out.println("[MailService] 📁 Variables d'environnement non trouvées, lecture de mail.properties...");
+
+                Properties props = new Properties();
+                InputStream input = getClass()
+                        .getClassLoader()
+                        .getResourceAsStream("mail.properties");
+
+                if (input == null) {
+                    System.err.println("[MailService] ❌ mail.properties introuvable ! Le service email ne fonctionnera pas.");
+                    return;
+                }
+                props.load(input);
+
+                username = props.getProperty("mail.username");
+                password = props.getProperty("mail.password");
+                from     = props.getProperty("mail.from");
+
+                mailProps = new Properties();
+                mailProps.put("mail.smtp.host",            props.getProperty("mail.host"));
+                mailProps.put("mail.smtp.port",            props.getProperty("mail.port"));
+                mailProps.put("mail.smtp.auth",            "true");
+                mailProps.put("mail.smtp.starttls.enable", props.getProperty("mail.starttls"));
             }
-            props.load(input);
 
-            username = props.getProperty("mail.username");
-            password = props.getProperty("mail.password");
-            from     = props.getProperty("mail.from");
-
-            // Paramètres SMTP pour JavaMail
-            mailProps = new Properties();
-            mailProps.put("mail.smtp.host",            props.getProperty("mail.host"));
-            mailProps.put("mail.smtp.port",            props.getProperty("mail.port"));
-            mailProps.put("mail.smtp.auth",            "true");
-            mailProps.put("mail.smtp.starttls.enable", props.getProperty("mail.starttls"));
+            System.out.println("[MailService] ✅ Configuration mail chargée pour : " + username);
 
         } catch (IOException e) {
-            throw new RuntimeException("Erreur lecture mail.properties : " + e.getMessage(), e);
+            System.err.println("[MailService] ❌ Erreur lecture configuration mail : " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-    // ── Envoi générique ───────────────────────────────────────────────────────
-
     private void envoyerEmail(String destinataire, String sujet, String contenu) {
-        // Vérifier que le destinataire n'est pas null ou vide
         if (destinataire == null || destinataire.trim().isEmpty()) {
-            System.err.println("[MailService] Erreur : destinataire vide ou null !");
+            System.err.println("[MailService] ❌ Erreur : destinataire vide ou null !");
+            return;
+        }
+
+        if (username == null || password == null) {
+            System.err.println("[MailService] ❌ Configuration mail non initialisée. Email non envoyé à " + destinataire);
             return;
         }
 
@@ -85,24 +110,26 @@ public class MailService {
             message.setContent(contenu, "text/html; charset=utf-8");
 
             Transport.send(message);
-            System.out.println("[MailService] Email envoyé à : " + destinataire);
+            System.out.println("[MailService] ✅ Email envoyé à : " + destinataire);
 
         } catch (MessagingException e) {
-            System.err.println("[MailService] Erreur envoi email vers " + destinataire + " : " + e.getMessage());
+            System.err.println("[MailService] ❌ Erreur envoi email vers " + destinataire + " : " + e.getMessage());
         }
     }
 
-    // ── Mail de confirmation de RDV ───────────────────────────────────────────
-
     public void envoyerConfirmation(Rdv rdv) {
-        // ===== DEBUG : Affiche les emails récupérés =====
-        System.out.println("=== DEBUG MAIL CONFIRMATION ===");
+        // Vérification que rdv n'est pas null
+        if (rdv == null) {
+            System.err.println("[MailService] ❌ Erreur: rdv est null");
+            return;
+        }
+
+        System.out.println("=== 📧 DEBUG MAIL CONFIRMATION ===");
         System.out.println("Patient nom: " + (rdv.getPatient() != null ? rdv.getPatient().getNomPat() : "null"));
         System.out.println("Patient email: " + (rdv.getPatient() != null ? rdv.getPatient().getEmail() : "null"));
         System.out.println("Medecin nom: " + (rdv.getMedecin() != null ? rdv.getMedecin().getNommed() : "null"));
         System.out.println("Medecin email: " + (rdv.getMedecin() != null ? rdv.getMedecin().getEmail() : "null"));
         System.out.println("=================================");
-        // ===== FIN DEBUG =====
 
         String sujet = "Confirmation de votre rendez-vous médical";
 
@@ -112,27 +139,25 @@ public class MailService {
                 "<p>Votre rendez-vous a été confirmé avec les informations suivantes :</p>" +
                 "<table style='border-collapse: collapse; width: 100%;'>" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Médecin</strong></td>" +
-                "<td style='padding: 8px; border: 1px solid #ddd;'>Dr. " + rdv.getMedecin().getNommed() + "</td></tr>" +
+                "<td style='padding: 8px; border: 1px solid #ddd;'>Dr. " + rdv.getMedecin().getNommed() + "NonNullNode\n" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Spécialité</strong></td>" +
-                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getMedecin().getSpecialite() + "</td></tr>" +
+                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getMedecin().getSpecialite() + "NonNullNode\n" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Date et heure</strong></td>" +
-                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getDateFormatee() + "</td></tr>" +
+                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getDateFormatee() + "NonNullNode\n" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Lieu</strong></td>" +
-                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getMedecin().getLieu() + "</td></tr>" +
+                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getMedecin().getLieu() + "NonNullNode\n" +
                 "</table>" +
                 "<p style='color: #666;'>Merci de vous présenter 10 minutes avant l'heure du rendez-vous.</p>" +
                 "<p>Cordialement,<br><strong>RDV Medical</strong></p>" +
                 "</body></html>";
 
-        // Envoyer au patient - Vérifier que l'email est valide
         String emailPatient = rdv.getPatient() != null ? rdv.getPatient().getEmail() : null;
         if (emailPatient != null && !emailPatient.isEmpty()) {
             envoyerEmail(emailPatient, sujet, contenu);
         } else {
-            System.err.println("[MailService] Impossible d'envoyer au patient : email null");
+            System.err.println("[MailService] ❌ Impossible d'envoyer au patient : email null ou vide");
         }
 
-        // Envoyer aussi au médecin - Vérifier que l'email est valide
         String sujetMedecin = "Nouveau rendez-vous - " + rdv.getPatient().getNomPat();
         String contenuMedecin = "<html><body style='font-family: Arial, sans-serif;'>" +
                 "<h2 style='color: #2E86AB;'>Nouveau rendez-vous</h2>" +
@@ -140,9 +165,9 @@ public class MailService {
                 "<p>Un nouveau rendez-vous a été enregistré :</p>" +
                 "<table style='border-collapse: collapse; width: 100%;'>" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Patient</strong></td>" +
-                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getPatient().getNomPat() + "</td></tr>" +
+                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getPatient().getNomPat() + "NonNullNode\n" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Date et heure</strong></td>" +
-                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getDateFormatee() + "</td></tr>" +
+                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getDateFormatee() + "NonNullNode\n" +
                 "</table>" +
                 "<p>Cordialement,<br><strong>RDV Medical</strong></p>" +
                 "</body></html>";
@@ -151,21 +176,23 @@ public class MailService {
         if (emailMedecin != null && !emailMedecin.isEmpty()) {
             envoyerEmail(emailMedecin, sujetMedecin, contenuMedecin);
         } else {
-            System.err.println("[MailService] Impossible d'envoyer au médecin : email null");
+            System.err.println("[MailService] ❌ Impossible d'envoyer au médecin : email null ou vide");
         }
     }
 
-    // ── Mail d'annulation de RDV ──────────────────────────────────────────────
-
     public void envoyerAnnulation(Rdv rdv) {
-        // ===== DEBUG : Affiche les emails récupérés =====
-        System.out.println("=== DEBUG MAIL ANNULATION ===");
+        // Vérification que rdv n'est pas null
+        if (rdv == null) {
+            System.err.println("[MailService] ❌ Erreur: rdv est null");
+            return;
+        }
+
+        System.out.println("=== 📧 DEBUG MAIL ANNULATION ===");
         System.out.println("Patient nom: " + (rdv.getPatient() != null ? rdv.getPatient().getNomPat() : "null"));
         System.out.println("Patient email: " + (rdv.getPatient() != null ? rdv.getPatient().getEmail() : "null"));
         System.out.println("Medecin nom: " + (rdv.getMedecin() != null ? rdv.getMedecin().getNommed() : "null"));
         System.out.println("Medecin email: " + (rdv.getMedecin() != null ? rdv.getMedecin().getEmail() : "null"));
         System.out.println("=================================");
-        // ===== FIN DEBUG =====
 
         String sujet = "Annulation de votre rendez-vous médical";
 
@@ -175,7 +202,7 @@ public class MailService {
                 "<p>Votre rendez-vous suivant a été annulé :</p>" +
                 "<table style='border-collapse: collapse; width: 100%;'>" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Médecin</strong></td>" +
-                "<td style='padding: 8px; border: 1px solid #ddd;'>Dr. " + rdv.getMedecin().getNommed() + "</td></tr>" +
+                "<td style='padding: 8px; border: 1px solid #ddd;'>Dr. " + rdv.getMedecin().getNommed() + "NonNullNode\n" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Date et heure</strong></td>" +
                 "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getDateFormatee() + "NonNullNode\n" +
                 "</table>" +
@@ -183,21 +210,19 @@ public class MailService {
                 "<p>Cordialement,<br><strong>RDV Medical</strong></p>" +
                 "</body></html>";
 
-        // Envoyer au patient
         String emailPatient = rdv.getPatient() != null ? rdv.getPatient().getEmail() : null;
         if (emailPatient != null && !emailPatient.isEmpty()) {
             envoyerEmail(emailPatient, sujet, contenu);
         } else {
-            System.err.println("[MailService] Impossible d'envoyer l'annulation au patient : email null");
+            System.err.println("[MailService] ❌ Impossible d'envoyer l'annulation au patient : email null ou vide");
         }
 
-        // Envoyer aussi au médecin
         String sujetMedecin = "Annulation RDV - " + rdv.getPatient().getNomPat();
         String emailMedecin = rdv.getMedecin() != null ? rdv.getMedecin().getEmail() : null;
         if (emailMedecin != null && !emailMedecin.isEmpty()) {
             envoyerEmail(emailMedecin, sujetMedecin, contenu);
         } else {
-            System.err.println("[MailService] Impossible d'envoyer l'annulation au médecin : email null");
+            System.err.println("[MailService] ❌ Impossible d'envoyer l'annulation au médecin : email null ou vide");
         }
     }
 }
