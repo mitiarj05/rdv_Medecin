@@ -12,6 +12,5 @@ FROM tomcat:10.1-jdk17
 # Copier le WAR
 COPY --from=build /app/target/rdv-medical.war /usr/local/tomcat/webapps/ROOT.war
 
-# Pas de setenv.sh compliqué - Tomcat lit directement les variables d'env
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
