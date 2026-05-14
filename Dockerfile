@@ -7,22 +7,28 @@ RUN mvn dependency:go-offline
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-# 🔥 AFFICHER LE CONTENU COMPLET DU WAR
-RUN echo "=== CONTENU COMPLET DU WAR ==="
-RUN jar tf /app/target/rdv-medical.war
-RUN echo "=== FIN DU CONTENU ==="
-
 FROM tomcat:10.1-jdk17
-RUN rm -rf /usr/local/tomcat/webapps/*
-COPY --from=build /app/target/rdv-medical.war /usr/local/tomcat/webapps/ROOT.war
 
-# 🔥 VÉRIFIER LE CONTENU APRÈS DÉCOMPRESSION
-RUN cd /usr/local/tomcat/webapps && \
-    unzip -q ROOT.war -d ROOT && \
-    echo "=== CONTENU APRÈS DÉCOMPRESSION ===" && \
-    ls -la ROOT/ && \
-    ls -la ROOT/views/ && \
-    ls -la ROOT/views/shared/
+# Installer unzip
+RUN apt-get update && apt-get install -y unzip
+
+# Supprimer les apps par défaut
+RUN rm -rf /usr/local/tomcat/webapps/*
+
+# Créer le dossier d'explosion
+RUN mkdir -p /usr/local/tomcat/webapps/ROOT
+
+# Copier et décompresser le WAR directement
+COPY --from=build /app/target/rdv-medical.war /tmp/app.war
+RUN cd /usr/local/tomcat/webapps/ROOT && \
+    unzip -q /tmp/app.war && \
+    rm /tmp/app.war
+
+# Vérifier les fichiers
+RUN echo "=== CONTENU DE ROOT ===" && \
+    ls -la /usr/local/tomcat/webapps/ROOT/ && \
+    echo "=== CONTENU DE views/shared ===" && \
+    ls -la /usr/local/tomcat/webapps/ROOT/views/shared/ || echo "views/shared n'existe pas"
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
