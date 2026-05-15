@@ -105,32 +105,76 @@ public class MailService {
     }
 
     public void envoyerAnnulation(Rdv rdv) {
-        if (!isConfigured || rdv == null || rdv.getPatient() == null) return;
+        if (!isConfigured) {
+            System.err.println("[MailService] ❌ Mailjet non configuré");
+            return;
+        }
+        if (rdv == null || rdv.getPatient() == null || rdv.getMedecin() == null) {
+            System.err.println("[MailService] ❌ RDV invalide pour annulation");
+            return;
+        }
         
         String patientEmail = rdv.getPatient().getEmail();
-        if (patientEmail == null || patientEmail.isEmpty()) return;
+        String medecinEmail = rdv.getMedecin().getEmail();
         
-        System.out.println("[MailService] 📧 Envoi annulation à: " + patientEmail);
+        System.out.println("[MailService] =========================================");
+        System.out.println("[MailService] 📧 ANNULATION - Envoi au patient: " + patientEmail);
+        System.out.println("[MailService] 📧 ANNULATION - Envoi au médecin: " + medecinEmail);
+        System.out.println("[MailService] =========================================");
         
-        String sujet = "❌ Annulation de votre rendez-vous médical";
-        String contenu = String.format(
-            "<html><body>" +
-            "<h2 style='color:#ea4335;'>❌ Annulation de rendez-vous</h2>" +
+        // Email au PATIENT
+        String sujetPatient = "❌ Annulation de votre rendez-vous médical";
+        String contenuPatient = String.format(
+            "<!DOCTYPE html><html><head><meta charset='UTF-8'></head>" +
+            "<body style='font-family: Arial, sans-serif;'>" +
+            "<div style='max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;'>" +
+            "<h2 style='color: #ea4335;'>🏥 RDV Medical</h2>" +
+            "<h3 style='color: #ea4335;'>❌ Annulation de rendez-vous</h3>" +
             "<p>Bonjour <strong>%s</strong>,</p>" +
-            "<p>Votre rendez-vous avec le Dr. %s du %s a été annulé.</p>" +
-            "<p>Vous pouvez prendre un nouveau rendez-vous.</p>" +
-            "<hr><p>RDV Medical</p></body></html>",
+            "<p>Nous vous informons que votre rendez-vous a été annulé.</p>" +
+            "<ul>" +
+            "<li><strong>👨‍⚕️ Médecin :</strong> Dr. %s</li>" +
+            "<li><strong>📅 Date :</strong> %s</li>" +
+            "</ul>" +
+            "<p>Vous pouvez prendre un nouveau rendez-vous sur notre plateforme.</p>" +
+            "<hr><p style='font-size: 12px; color: #999;'>RDV Medical</p>" +
+            "</div></body></html>",
             rdv.getPatient().getNomPat(),
             rdv.getMedecin().getNommed(),
             rdv.getDateFormatee()
         );
         
-        envoyerViaMailjetAPI(patientEmail, sujet, contenu);
+        envoyerViaMailjetAPI(patientEmail, sujetPatient, contenuPatient);
+        
+        // Email au MEDECIN
+        if (medecinEmail != null && !medecinEmail.isEmpty()) {
+            String sujetMedecin = "❌ Annulation de rendez-vous - " + rdv.getPatient().getNomPat();
+            String contenuMedecin = String.format(
+                "<!DOCTYPE html><html><head><meta charset='UTF-8'></head>" +
+                "<body style='font-family: Arial, sans-serif;'>" +
+                "<div style='max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;'>" +
+                "<h2 style='color: #ea4335;'>🏥 RDV Medical</h2>" +
+                "<h3 style='color: #ea4335;'>❌ Annulation de rendez-vous</h3>" +
+                "<p>Bonjour Dr. <strong>%s</strong>,</p>" +
+                "<p>Le rendez-vous suivant a été annulé :</p>" +
+                "<ul>" +
+                "<li><strong>👤 Patient :</strong> %s</li>" +
+                "<li><strong>📧 Email :</strong> %s</li>" +
+                "<li><strong>📅 Date :</strong> %s</li>" +
+                "</ul>" +
+                "<p>Cordialement,<br>RDV Medical</p>" +
+                "</div></body></html>",
+                rdv.getMedecin().getNommed(),
+                rdv.getPatient().getNomPat(),
+                rdv.getPatient().getEmail(),
+                rdv.getDateFormatee()
+            );
+            envoyerViaMailjetAPI(medecinEmail, sujetMedecin, contenuMedecin);
+        }
     }
     
     private void envoyerViaMailjetAPI(String destinataire, String sujet, String contenuHtml) {
         try {
-            // Utilisation de l'email validé comme expéditeur UNIQUE
             String jsonPayload = "{"
                 + "\"Messages\": ["
                 + "{"
