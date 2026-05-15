@@ -26,7 +26,7 @@
 ## 📸 Captures d'écran
 
 ### 🔐 Page de connexion
-![Page de connexion](https://raw.githubusercontent.com/mitiarj05/rdv_Medecin/main/src/main/webapp/images/screenshots/login.png)
+![Page de connexion](file:///D:/ENI/L3/JSP/rdv_Medecin/src/main/webapp/images/screenshots/login.png)
 
 ### 👤 Dashboard Patient
 ![Dashboard Patient](https://raw.githubusercontent.com/mitiarj05/rdv_Medecin/main/src/main/webapp/images/screenshots/dashboard-patient.png)
