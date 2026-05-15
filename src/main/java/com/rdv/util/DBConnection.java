@@ -18,11 +18,70 @@ public class DBConnection {
     private static HikariDataSource dataSource;
     private static boolean initialized = false;
 
-    // Constructeur privé : on ne peut pas instancier cette classe
     private DBConnection() {}
 
     /**
-     * Initialise le pool de connexions au démarrage de l'application.
+     * Convertit une URL PostgreSQL native (format Render) en URL JDBC.
+     * Ex: postgres://user:pass@host:5432/db -> jdbc:postgresql://host:5432/db
+     */
+    private static String convertToJdbcUrl(String dbUrl) {
+        if (dbUrl == null) return null;
+
+        // Déjà au format JDBC, rien à faire
+        if (dbUrl.startsWith("jdbc:")) {
+            return dbUrl;
+        }
+
+        // Format Render : postgres://user:password@host:port/dbname
+        // ou postgresql://user:password@host:port/dbname
+        if (dbUrl.startsWith("postgres://") || dbUrl.startsWith("postgresql://")) {
+            // Remplacer le préfixe par jdbc:postgresql://
+            String jdbc = dbUrl
+                    .replace("postgres://", "jdbc:postgresql://")
+                    .replace("postgresql://", "jdbc:postgresql://");
+
+            // Render ajoute parfois ?sslmode=require en query string, on le garde
+            // mais HikariCP a besoin du sslmode en propriété séparée si SSL requis
+            if (!jdbc.contains("sslmode")) {
+                jdbc = jdbc + (jdbc.contains("?") ? "&" : "?") + "sslmode=require";
+            }
+
+            System.out.println("[DBConnection] URL convertie en JDBC : " + jdbc.replaceAll(":[^@/]+@", ":***@"));
+            return jdbc;
+        }
+
+        return dbUrl;
+    }
+
+    /**
+     * Extrait le username depuis une URL postgres://user:pass@host/db
+     */
+    private static String extractUsernameFromUrl(String dbUrl) {
+        try {
+            // postgres://USER:pass@host:port/db
+            String withoutPrefix = dbUrl.replace("postgres://", "").replace("postgresql://", "");
+            String userInfo = withoutPrefix.split("@")[0]; // USER:pass
+            return userInfo.split(":")[0]; // USER
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Extrait le password depuis une URL postgres://user:pass@host/db
+     */
+    private static String extractPasswordFromUrl(String dbUrl) {
+        try {
+            String withoutPrefix = dbUrl.replace("postgres://", "").replace("postgresql://", "");
+            String userInfo = withoutPrefix.split("@")[0]; // user:PASS
+            return userInfo.split(":")[1]; // PASS
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Initialise le pool de connexions.
      * Priorité aux variables d'environnement (Render), puis fichier db.properties.
      */
     public static void init() {
@@ -33,52 +92,65 @@ public class DBConnection {
 
         try {
             HikariConfig config = new HikariConfig();
-            
-            // 🔥 PRIORITÉ AUX VARIABLES D'ENVIRONNEMENT (Render)
-            String dbUrl = System.getenv("DB_URL");
+
+            // Variables d'environnement Render
+            String dbUrl      = System.getenv("DB_URL");
             String dbUsername = System.getenv("DB_USERNAME");
             String dbPassword = System.getenv("DB_PASSWORD");
-            
-            System.out.println("[DBConnection] DB_URL from env: " + (dbUrl != null ? "✓ trouvé" : "✗ non trouvé"));
-            System.out.println("[DBConnection] DB_USERNAME from env: " + (dbUsername != null ? "✓ trouvé" : "✗ non trouvé"));
-            
-            if (dbUrl != null && dbUsername != null && dbPassword != null) {
-                config.setJdbcUrl(dbUrl);
+
+            System.out.println("[DBConnection] DB_URL     : " + (dbUrl      != null ? "✓ trouvé" : "✗ absent"));
+            System.out.println("[DBConnection] DB_USERNAME: " + (dbUsername != null ? "✓ trouvé" : "✗ absent"));
+            System.out.println("[DBConnection] DB_PASSWORD: " + (dbPassword != null ? "✓ trouvé" : "✗ absent"));
+
+            if (dbUrl != null) {
+                // Render fournit parfois seulement DB_URL avec user/pass intégrés
+                // On extrait user/pass depuis l'URL si les variables séparées sont absentes
+                if (dbUsername == null) {
+                    dbUsername = extractUsernameFromUrl(dbUrl);
+                    System.out.println("[DBConnection] Username extrait depuis DB_URL: " + dbUsername);
+                }
+                if (dbPassword == null) {
+                    dbPassword = extractPasswordFromUrl(dbUrl);
+                    System.out.println("[DBConnection] Password extrait depuis DB_URL: [masqué]");
+                }
+
+                // Convertir en JDBC si nécessaire
+                String jdbcUrl = convertToJdbcUrl(dbUrl);
+                config.setJdbcUrl(jdbcUrl);
                 config.setUsername(dbUsername);
                 config.setPassword(dbPassword);
-                System.out.println("[DBConnection] ✅ Utilisation des variables d'environnement Render");
+                System.out.println("[DBConnection] ✅ Configuration depuis les variables d'environnement Render");
+
             } else {
-                // Fallback sur db.properties pour le développement local
-                System.out.println("[DBConnection] Variables d'env non trouvées, lecture de db.properties...");
+                // Fallback local : fichier db.properties
+                System.out.println("[DBConnection] Lecture de db.properties (mode développement)...");
                 Properties props = new Properties();
                 InputStream input = DBConnection.class
                         .getClassLoader()
                         .getResourceAsStream("db.properties");
 
                 if (input == null) {
-                    throw new RuntimeException("Fichier db.properties introuvable et variables d'environnement non définies !");
+                    throw new RuntimeException("db.properties introuvable et DB_URL non défini !");
                 }
                 props.load(input);
-                
+
                 config.setJdbcUrl(props.getProperty("db.url"));
                 config.setUsername(props.getProperty("db.username"));
                 config.setPassword(props.getProperty("db.password"));
-                System.out.println("[DBConnection] Utilisation du fichier db.properties (mode développement)");
+                System.out.println("[DBConnection] ✅ Configuration depuis db.properties");
             }
 
             // Paramètres du pool
-            config.setMaximumPoolSize(10);
-            config.setMinimumIdle(2);
+            config.setMaximumPoolSize(5);   // Free tier Render : limité à 5 connexions max
+            config.setMinimumIdle(1);
             config.setConnectionTimeout(30000);
             config.setIdleTimeout(600000);
             config.setMaxLifetime(1800000);
             config.setPoolName("RdvMedicalPool");
             config.setDriverClassName("org.postgresql.Driver");
 
-            // Paramètres supplémentaires pour PostgreSQL
-            config.addDataSourceProperty("prepareThreshold", "0");
-            config.addDataSourceProperty("preparedStatementCacheQueries", "0");
-            config.addDataSourceProperty("preparedStatementCacheSizeMiB", "0");
+            // Test de connexion au démarrage
+            config.setConnectionTestQuery("SELECT 1");
 
             dataSource = new HikariDataSource(config);
             initialized = true;
@@ -91,7 +163,6 @@ public class DBConnection {
 
     /**
      * Retourne une connexion depuis le pool.
-     * À utiliser dans un try-with-resources pour la refermer automatiquement.
      */
     public static Connection getConnection() throws SQLException {
         if (dataSource == null || !initialized) {
@@ -103,14 +174,7 @@ public class DBConnection {
             throw new SQLException("Le pool de connexions n'a pas pu être initialisé.");
         }
 
-        try {
-            Connection conn = dataSource.getConnection();
-            System.out.println("[DBConnection] Connexion PostgreSQL obtenue avec succès.");
-            return conn;
-        } catch (SQLException e) {
-            System.err.println("[DBConnection] Erreur lors de l'obtention de la connexion : " + e.getMessage());
-            throw e;
-        }
+        return dataSource.getConnection();
     }
 
     /**
@@ -125,7 +189,7 @@ public class DBConnection {
     }
 
     /**
-     * Vérifie si le pool est initialisé et fonctionnel
+     * Vérifie si le pool est fonctionnel.
      */
     public static boolean testConnection() {
         try (Connection conn = getConnection()) {
