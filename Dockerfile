@@ -9,31 +9,13 @@ RUN mvn clean package -DskipTests
 
 FROM tomcat:10.1-jdk17
 
-# Installer unzip (nécessaire pour extraire le WAR)
-RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/*
-
 # Supprimer l'application par défaut
 RUN rm -rf /usr/local/tomcat/webapps/*
 
-# Copier le WAR
+# Copier directement le WAR comme ROOT.war (Tomcat le déploiera automatiquement)
 COPY --from=build /app/target/rdv-medical.war /usr/local/tomcat/webapps/ROOT.war
 
-# Extraire correctement le WAR dans ROOT/
-RUN cd /usr/local/tomcat/webapps && \
-    mkdir -p ROOT && \
-    cd ROOT && \
-    unzip -q ../ROOT.war && \
-    cd .. && \
-    rm ROOT.war && \
-    chmod -R 755 ROOT
-
-# Vérification que les JSP sont bien présentes
-RUN echo "=== Vérification des fichiers JSP ===" && \
-    ls -la /usr/local/tomcat/webapps/ROOT/ && \
-    echo "=== Vérification views/shared ===" && \
-    ls -la /usr/local/tomcat/webapps/ROOT/views/shared/ && \
-    echo "=== Vérification WEB-INF ===" && \
-    ls -la /usr/local/tomcat/webapps/ROOT/WEB-INF/
+# Pas besoin d'extraire ! Tomcat le fait tout seul au démarrage
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
