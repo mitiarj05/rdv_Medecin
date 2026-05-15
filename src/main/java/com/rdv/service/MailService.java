@@ -15,167 +15,119 @@ public class MailService {
     private boolean isConfigured = false;
 
     public MailService() {
-        // Récupérer les clés depuis les variables d'environnement Render
         apiKey = System.getenv("MAILJET_API_KEY");
         secretKey = System.getenv("MAILJET_SECRET_KEY");
         
-        System.out.println("========== MAILJET INITIALIZATION ==========");
-        System.out.println("MAILJET_API_KEY: " + (apiKey != null ? "✅ FOUND (" + apiKey.substring(0, 10) + "...)" : "❌ NOT FOUND"));
-        System.out.println("MAILJET_SECRET_KEY: " + (secretKey != null ? "✅ FOUND (" + secretKey.substring(0, 10) + "...)" : "❌ NOT FOUND"));
+        System.out.println("[MailService] ========== INITIALISATION MAILJET ==========");
+        System.out.println("[MailService] MAILJET_API_KEY: " + (apiKey != null ? "✅ TROUVEE" : "❌ ABSENTE"));
+        System.out.println("[MailService] MAILJET_SECRET_KEY: " + (secretKey != null ? "✅ TROUVEE" : "❌ ABSENTE"));
         
         if (apiKey != null && !apiKey.isEmpty() && secretKey != null && !secretKey.isEmpty()) {
             isConfigured = true;
-            System.out.println("✅ Mailjet is ready to send emails!");
+            System.out.println("[MailService] ✅ Mailjet initialisé avec succès !");
         } else {
-            System.err.println("❌ Mailjet NOT configured - missing API keys");
+            System.err.println("[MailService] ❌ Mailjet non configuré");
         }
-        System.out.println("============================================");
     }
 
     public void envoyerConfirmation(Rdv rdv) {
-        System.out.println("[MailService] Sending confirmation email...");
-        
-        if (!isConfigured) {
-            System.err.println("[MailService] Mailjet not configured");
-            return;
-        }
-        
-        if (rdv == null || rdv.getPatient() == null || rdv.getMedecin() == null) {
-            System.err.println("[MailService] Invalid RDV data");
+        if (!isConfigured || rdv == null || rdv.getPatient() == null || rdv.getMedecin() == null) {
+            System.err.println("[MailService] Configuration invalide");
             return;
         }
         
         String patientEmail = rdv.getPatient().getEmail();
-        if (patientEmail == null || patientEmail.isEmpty()) {
-            System.err.println("[MailService] No patient email");
-            return;
-        }
+        if (patientEmail == null || patientEmail.isEmpty()) return;
         
-        System.out.println("[MailService] To: " + patientEmail);
-        System.out.println("[MailService] Patient: " + rdv.getPatient().getNomPat());
-        System.out.println("[MailService] Doctor: Dr. " + rdv.getMedecin().getNommed());
-        System.out.println("[MailService] Date: " + rdv.getDateFormatee());
+        System.out.println("[MailService] 📧 Envoi confirmation à: " + patientEmail);
         
-        // Construction de l'email HTML
-        String htmlContent = "<!DOCTYPE html>" +
-            "<html>" +
-            "<head><meta charset='UTF-8'></head>" +
-            "<body style='font-family: Arial, sans-serif;'>" +
-            "<div style='max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;'>" +
-            "<h2 style='color: #1a73e8;'>🏥 RDV Medical</h2>" +
-            "<h3 style='color: #34a853;'>✓ Confirmation de rendez-vous</h3>" +
-            "<p>Bonjour <strong>" + rdv.getPatient().getNomPat() + "</strong>,</p>" +
+        String sujet = "✅ Confirmation de votre rendez-vous médical";
+        String contenuHtml = String.format(
+            "<html><body>" +
+            "<h2 style='color:#1a73e8;'>🏥 RDV Medical</h2>" +
+            "<h3>✓ Confirmation de rendez-vous</h3>" +
+            "<p>Bonjour <strong>%s</strong>,</p>" +
             "<p>Votre rendez-vous a été confirmé :</p>" +
-            "<table style='width: 100%;'>" +
-            "<tr><td><strong>👨‍⚕️ Médecin</strong></td><td>Dr. " + rdv.getMedecin().getNommed() + "</td></tr>" +
-            "<tr><td><strong>🔬 Spécialité</strong></td><td>" + rdv.getMedecin().getSpecialite() + "</td></tr>" +
-            "<tr><td><strong>📅 Date</strong></td><td>" + rdv.getDateFormatee() + "</td></tr>" +
-            "<tr><td><strong>📍 Lieu</strong></td><td>" + rdv.getMedecin().getLieu() + "</td></tr>" +
-            "</table>" +
+            "<ul>" +
+            "<li><strong>Médecin :</strong> Dr. %s</li>" +
+            "<li><strong>Spécialité :</strong> %s</li>" +
+            "<li><strong>Date :</strong> %s</li>" +
+            "<li><strong>Lieu :</strong> %s</li>" +
+            "</ul>" +
             "<p>Merci de vous présenter 10 minutes avant.</p>" +
-            "<hr>" +
-            "<p style='font-size: 12px; color: #999;'>RDV Medical</p>" +
-            "</div>" +
-            "</body>" +
-            "</html>";
+            "<hr><p style='font-size:12px;color:#999;'>RDV Medical</p>" +
+            "</body></html>",
+            rdv.getPatient().getNomPat(),
+            rdv.getMedecin().getNommed(),
+            rdv.getMedecin().getSpecialite(),
+            rdv.getDateFormatee(),
+            rdv.getMedecin().getLieu()
+        );
         
-        envoyerViaMailjetAPI(patientEmail, "✅ Confirmation RDV Medical", htmlContent);
+        envoyerViaMailjetAPI(patientEmail, sujet, contenuHtml);
     }
 
     public void envoyerAnnulation(Rdv rdv) {
         if (!isConfigured || rdv == null || rdv.getPatient() == null) return;
         
         String patientEmail = rdv.getPatient().getEmail();
-        if (patientEmail == null) return;
+        if (patientEmail == null || patientEmail.isEmpty()) return;
         
-        System.out.println("[MailService] Sending cancellation to: " + patientEmail);
+        System.out.println("[MailService] 📧 Envoi annulation à: " + patientEmail);
         
-        String htmlContent = "<!DOCTYPE html>" +
-            "<html>" +
-            "<body style='font-family: Arial, sans-serif;'>" +
-            "<div style='max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;'>" +
-            "<h2 style='color: #ea4335;'>❌ Annulation de rendez-vous</h2>" +
-            "<p>Bonjour <strong>" + rdv.getPatient().getNomPat() + "</strong>,</p>" +
-            "<p>Votre rendez-vous du " + rdv.getDateFormatee() + " a été annulé.</p>" +
+        String sujet = "❌ Annulation de votre rendez-vous médical";
+        String contenuHtml = String.format(
+            "<html><body>" +
+            "<h2 style='color:#ea4335;'>❌ Annulation de rendez-vous</h2>" +
+            "<p>Bonjour <strong>%s</strong>,</p>" +
+            "<p>Votre rendez-vous du %s a été annulé.</p>" +
             "<p>Vous pouvez prendre un nouveau rendez-vous.</p>" +
-            "<hr>" +
-            "<p style='font-size: 12px; color: #999;'>RDV Medical</p>" +
-            "</div>" +
-            "</body>" +
-            "</html>";
+            "<hr><p style='font-size:12px;color:#999;'>RDV Medical</p>" +
+            "</body></html>",
+            rdv.getPatient().getNomPat(),
+            rdv.getDateFormatee()
+        );
         
-        envoyerViaMailjetAPI(patientEmail, "❌ Annulation RDV Medical", htmlContent);
+        envoyerViaMailjetAPI(patientEmail, sujet, contenuHtml);
     }
     
-    private void envoyerViaMailjetAPI(String toEmail, String subject, String htmlContent) {
+    private void envoyerViaMailjetAPI(String destinataire, String sujet, String contenuHtml) {
         try {
-            // Construire la requête JSON pour Mailjet API v3.1
-            String jsonPayload = String.format("""
-                {
-                    "Messages": [
-                        {
-                            "From": {
-                                "Email": "noreply@rdv-medical.com",
-                                "Name": "RDV Medical"
-                            },
-                            "To": [
-                                {
-                                    "Email": "%s",
-                                    "Name": "Patient"
-                                }
-                            ],
-                            "Subject": "%s",
-                            "HTMLPart": "%s"
-                        }
-                    ]
-                }
-                """, 
-                escapeJson(toEmail), 
-                escapeJson(subject), 
-                escapeJson(htmlContent)
-            );
+            // UTILISE TON EMAIL VALIDÉ
+            String jsonPayload = "{"
+                + "\"Messages\": ["
+                + "{"
+                + "\"From\": {\"Email\": \"mitiarj05@gmail.com\", \"Name\": \"RDV Medical\"},"
+                + "\"To\": [{\"Email\": \"" + destinataire + "\", \"Name\": \"Patient\"}],"
+                + "\"Subject\": \"" + sujet.replace("\"", "\\\"") + "\","
+                + "\"HTMLPart\": \"" + contenuHtml.replace("\"", "\\\"").replace("\n", "").replace("\r", "") + "\""
+                + "}"
+                + "]"
+                + "}";
             
-            // Créer la connexion HTTP
             URL url = new URL("https://api.mailjet.com/v3.1/send");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
             
-            // Authentification Basic avec API Key + Secret Key
             String auth = apiKey + ":" + secretKey;
             String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
             conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
-            
             conn.setDoOutput(true);
             
-            // Envoyer la requête
             try (OutputStream os = conn.getOutputStream()) {
-                byte[] input = jsonPayload.getBytes(StandardCharsets.UTF_8);
-                os.write(input, 0, input.length);
+                os.write(jsonPayload.getBytes(StandardCharsets.UTF_8));
             }
             
-            // Lire la réponse
             int responseCode = conn.getResponseCode();
             if (responseCode == 200 || responseCode == 201) {
-                System.out.println("[MailService] ✅ Email sent successfully to " + toEmail);
-                System.out.println("[MailService] Response code: " + responseCode);
+                System.out.println("[MailService] ✅ Email envoyé à " + destinataire);
             } else {
-                System.err.println("[MailService] ❌ Failed to send email. Response code: " + responseCode);
+                System.err.println("[MailService] ❌ Erreur " + responseCode + " pour " + destinataire);
             }
-            
             conn.disconnect();
-            
         } catch (Exception e) {
             System.err.println("[MailService] ❌ Exception: " + e.getMessage());
-            e.printStackTrace();
         }
-    }
-    
-    private String escapeJson(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r");
     }
 }
