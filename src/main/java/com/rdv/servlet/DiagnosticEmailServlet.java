@@ -1,6 +1,8 @@
 package com.rdv.servlet;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -33,6 +35,7 @@ public class DiagnosticEmailServlet extends HttpServlet {
         html.append("table{border-collapse:collapse;width:100%;margin:10px 0;}");
         html.append("td,th{border:1px solid #ddd;padding:8px;text-align:left;}");
         html.append("th{background:#1a73e8;color:white;}");
+        html.append("pre{background:#333;color:#fff;padding:10px;overflow-x:auto;}");
         html.append("</style>");
         html.append("</head><body>");
         
@@ -43,19 +46,16 @@ public class DiagnosticEmailServlet extends HttpServlet {
         
         String mailjetApiKey = System.getenv("MAILJET_API_KEY");
         String mailjetSecretKey = System.getenv("MAILJET_SECRET_KEY");
-        String mailUsername = System.getenv("MAIL_USERNAME");
         
         html.append("<table>");
         html.append("<tr><th>Variable</th><th>Statut</th><th>Valeur</th></tr>");
         
-        // MAILJET_API_KEY
         if (mailjetApiKey != null && !mailjetApiKey.isEmpty()) {
             html.append("<tr><td>MAILJET_API_KEY</td><td class='ok'>✅ OK</td><td>").append(mailjetApiKey.substring(0, 10)).append("...").append("</td></tr>");
         } else {
             html.append("<tr><td>MAILJET_API_KEY</td><td class='error'>❌ MANQUANTE</td><td>-</td></tr>");
         }
         
-        // MAILJET_SECRET_KEY
         if (mailjetSecretKey != null && !mailjetSecretKey.isEmpty()) {
             html.append("<tr><td>MAILJET_SECRET_KEY</td><td class='ok'>✅ OK</td><td>").append(mailjetSecretKey.substring(0, 10)).append("...").append("</td></tr>");
         } else {
@@ -85,40 +85,20 @@ public class DiagnosticEmailServlet extends HttpServlet {
                 html.append("<div class='error'>❌ Impossible d'envoyer : clés Mailjet manquantes !</div>");
             } else {
                 try {
-                    // Construire la requête JSON pour Mailjet
-                    String jsonPayload = String.format("""
-                        {
-                            "Messages": [
-                                {
-                                    "From": {
-                                        "Email": "noreply@rdv-medical.com",
-                                        "Name": "RDV Medical"
-                                    },
-                                    "To": [
-                                        {
-                                            "Email": "%s",
-                                            "Name": "Test"
-                                        }
-                                    ],
-                                    "Subject": "✅ Test RDV Medical - Mailjet fonctionne !",
-                                    "HTMLPart": "<html><body style='font-family:Arial'>" +
-                                        "<h2 style='color:#1a73e8;'>🏥 RDV Medical</h2>" +
-                                        "<h3 style='color:#34a853;'>✅ Test réussi !</h3>" +
-                                        "<p>Mailjet est correctement configuré sur Render.</p>" +
-                                        "<p>Date du test : %s</p>" +
-                                        "<hr>" +
-                                        "<p style='color:#999;font-size:12px;'>RDV Medical - Plateforme de rendez-vous médicaux</p>" +
-                                        "</body></html>"
-                                    }
-                                }
-                            ]
-                        }
-                        """, 
-                        testEmail,
-                        new java.util.Date().toString()
-                    );
+                    // Construction du JSON VALIDE pour Mailjet
+                    String jsonPayload = "{"
+                        + "\"Messages\": ["
+                        + "{"
+                        + "\"From\": {\"Email\": \"noreply@rdv-medical.com\", \"Name\": \"RDV Medical\"},"
+                        + "\"To\": [{\"Email\": \"" + testEmail + "\", \"Name\": \"Patient\"}],"
+                        + "\"Subject\": \"Test RDV Medical - Mailjet fonctionne !\","
+                        + "\"HTMLPart\": \"<html><body><h2 style='color:#1a73e8;'>🏥 RDV Medical</h2><h3 style='color:#34a853;'>✅ Test r&eacute;ussi !</h3><p>Mailjet est correctement configur&eacute; sur Render.</p><p>Date: " + new java.util.Date() + "</p><hr><p style='color:#999;'>RDV Medical</p></body></html>\""
+                        + "}"
+                        + "]"
+                        + "}";
                     
-                    // Connexion à l'API Mailjet
+                    html.append("<div class='info'>📤 Envoi de la requête...</div>");
+                    
                     URL url = new URL("https://api.mailjet.com/v3.1/send");
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                     conn.setRequestMethod("POST");
@@ -129,7 +109,12 @@ public class DiagnosticEmailServlet extends HttpServlet {
                     conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
                     conn.setDoOutput(true);
                     
-                    // Envoyer la requête
+                    // Afficher la requête pour debug
+                    html.append("<details><summary>🔍 Voir la requête JSON</summary>");
+                    html.append("<pre>").append(escapeHtml(jsonPayload)).append("</pre>");
+                    html.append("</details>");
+                    
+                    // Envoyer
                     try (OutputStream os = conn.getOutputStream()) {
                         byte[] input = jsonPayload.getBytes(StandardCharsets.UTF_8);
                         os.write(input, 0, input.length);
@@ -139,19 +124,29 @@ public class DiagnosticEmailServlet extends HttpServlet {
                     
                     html.append("<table>");
                     html.append("<tr><th>Étape</th><th>Résultat</th></tr>");
-                    html.append("<tr><td>Connexion à Mailjet</td><td>✅ Connecté</td></tr>");
-                    html.append("<tr><td>Envoi de l'email</td>");
+                    html.append("<tr><td>Connexion à Mailjet</td><td class='ok'>✅ Connecté</td></tr>");
                     
                     if (responseCode == 200 || responseCode == 201) {
-                        html.append("<td class='ok'>✅ Succès ! Email envoyé à ").append(testEmail).append("</td></tr>");
-                        html.append("<tr><td>Code réponse</td><td>").append(responseCode).append("</td></tr>");
-                    } else {
-                        html.append("<td class='error'>❌ Échec ! Code: ").append(responseCode).append("</td></tr>");
-                    }
-                    html.append("</table>");
-                    
-                    if (responseCode == 200 || responseCode == 201) {
+                        html.append("<tr><td>Envoi de l'email</td><td class='ok'>✅ Succès ! Email envoyé à " + testEmail + "</td></tr>");
+                        html.append("<tr><td>Code réponse</td><td class='ok'>" + responseCode + "</td></tr>");
+                        html.append("</table>");
                         html.append("<div class='ok'>✅ Vérifiez votre boîte mail (pensez à regarder les spams !)</div>");
+                    } else {
+                        html.append("<tr><td>Envoi de l'email</td><td class='error'>❌ Échec ! Code: " + responseCode + "</td></tr>");
+                        html.append("</table>");
+                        
+                        // Lire la réponse d'erreur
+                        BufferedReader br = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+                        StringBuilder errorResponse = new StringBuilder();
+                        String line;
+                        while ((line = br.readLine()) != null) {
+                            errorResponse.append(line);
+                        }
+                        br.close();
+                        
+                        html.append("<details><summary>❌ Voir l'erreur détaillée</summary>");
+                        html.append("<pre>").append(escapeHtml(errorResponse.toString())).append("</pre>");
+                        html.append("</details>");
                     }
                     
                     conn.disconnect();
@@ -167,8 +162,8 @@ public class DiagnosticEmailServlet extends HttpServlet {
         html.append("<h2>3. Recommandations</h2>");
         html.append("<div class='info'>");
         html.append("<ul>");
-        html.append("<li>✅ Utilisez Mailjet (pas Gmail) sur Render</li>");
-        html.append("<li>📧 Vérifiez vos spams si vous ne recevez pas les emails</li>");
+        html.append("<li>✅ Mailjet est configuré et fonctionne sur Render</li>");
+        html.append("<li>📧 Si le test échoue, vérifiez que votre compte Mailjet est validé</li>");
         html.append("<li>🔑 Les clés API doivent être correctes et sans espaces</li>");
         html.append("</ul>");
         html.append("</div>");
@@ -178,5 +173,13 @@ public class DiagnosticEmailServlet extends HttpServlet {
         html.append("</body></html>");
         
         resp.getWriter().write(html.toString());
+    }
+    
+    private String escapeHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;");
     }
 }
