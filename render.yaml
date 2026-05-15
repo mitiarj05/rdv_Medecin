@@ -6,11 +6,13 @@ services:
     branch: amelioration2
     plan: free
     dockerfilePath: ./Dockerfile
+    # Render injecte PORT automatiquement, Tomcat écoute sur 8080
+    healthCheckPath: /test.html
     envVars:
       - key: MAIL_USERNAME
-        value: mitiarj05@gmail.com
+        sync: false          # À saisir manuellement dans le dashboard Render (secret)
       - key: MAIL_PASSWORD
-        value: flfz tyrh tpih pjsa
+        sync: false          # À saisir manuellement dans le dashboard Render (secret)
       - key: DB_URL
         fromDatabase:
           name: rdv-medical-db

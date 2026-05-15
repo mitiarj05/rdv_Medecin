@@ -1,1 +1,0 @@
-web: java -jar target/rdv-medical.war
