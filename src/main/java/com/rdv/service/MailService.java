@@ -46,9 +46,13 @@ public class MailService {
                 mailProps.put("mail.smtp.auth", "true");
                 mailProps.put("mail.smtp.starttls.enable", "true");
                 mailProps.put("mail.smtp.ssl.protocols", "TLSv1.2");
-                mailProps.put("mail.smtp.connectiontimeout", "5000");
-                mailProps.put("mail.smtp.timeout", "5000");
-                mailProps.put("mail.smtp.writetimeout", "5000");
+                mailProps.put("mail.smtp.connectiontimeout", "10000");
+                mailProps.put("mail.smtp.timeout", "10000");
+                mailProps.put("mail.smtp.writetimeout", "10000");
+                mailProps.put("mail.debug", "true"); // Activer le debug pour les logs
+
+                // Authentification explicite
+                mailProps.put("mail.smtp.auth.mechanisms", "XOAUTH2 PLAIN LOGIN");
 
             } else {
                 System.out.println("[MailService] 📁 Variables d'environnement non trouvées, lecture de mail.properties...");
@@ -94,12 +98,18 @@ public class MailService {
             return;
         }
 
+        System.out.println("[MailService] 📧 Tentative d'envoi à : " + destinataire);
+        System.out.println("[MailService] Sujet : " + sujet);
+
         Session session = Session.getInstance(mailProps, new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
                 return new PasswordAuthentication(username, password);
             }
         });
+        
+        // Activer le debug SMTP pour voir ce qui se passe
+        session.setDebug(true);
 
         try {
             Message message = new MimeMessage(session);
@@ -110,10 +120,11 @@ public class MailService {
             message.setContent(contenu, "text/html; charset=utf-8");
 
             Transport.send(message);
-            System.out.println("[MailService] ✅ Email envoyé à : " + destinataire);
+            System.out.println("[MailService] ✅ Email envoyé avec succès à : " + destinataire);
 
         } catch (MessagingException e) {
             System.err.println("[MailService] ❌ Erreur envoi email vers " + destinataire + " : " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -131,6 +142,15 @@ public class MailService {
         System.out.println("Medecin email: " + (rdv.getMedecin() != null ? rdv.getMedecin().getEmail() : "null"));
         System.out.println("=================================");
 
+        // Vérifier que les emails existent
+        String emailPatient = rdv.getPatient() != null ? rdv.getPatient().getEmail() : null;
+        String emailMedecin = rdv.getMedecin() != null ? rdv.getMedecin().getEmail() : null;
+
+        if (emailPatient == null && emailMedecin == null) {
+            System.err.println("[MailService] ❌ Aucun email valide trouvé !");
+            return;
+        }
+
         String sujet = "Confirmation de votre rendez-vous médical";
 
         String contenu = "<html><body style='font-family: Arial, sans-serif;'>" +
@@ -139,19 +159,22 @@ public class MailService {
                 "<p>Votre rendez-vous a été confirmé avec les informations suivantes :</p>" +
                 "<table style='border-collapse: collapse; width: 100%;'>" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Médecin</strong></td>" +
-                "<td style='padding: 8px; border: 1px solid #ddd;'>Dr. " + rdv.getMedecin().getNommed() + "NonNullNode\n" +
+                "<td style='padding: 8px; border: 1px solid #ddd;'>Dr. " + rdv.getMedecin().getNommed() + "</td>" +
+                "</tr>" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Spécialité</strong></td>" +
-                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getMedecin().getSpecialite() + "NonNullNode\n" +
+                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getMedecin().getSpecialite() + "</td>" +
+                "</tr>" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Date et heure</strong></td>" +
-                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getDateFormatee() + "NonNullNode\n" +
+                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getDateFormatee() + "</td>" +
+                "</tr>" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Lieu</strong></td>" +
-                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getMedecin().getLieu() + "NonNullNode\n" +
+                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getMedecin().getLieu() + "</td>" +
+                "</tr>" +
                 "</table>" +
                 "<p style='color: #666;'>Merci de vous présenter 10 minutes avant l'heure du rendez-vous.</p>" +
                 "<p>Cordialement,<br><strong>RDV Medical</strong></p>" +
                 "</body></html>";
 
-        String emailPatient = rdv.getPatient() != null ? rdv.getPatient().getEmail() : null;
         if (emailPatient != null && !emailPatient.isEmpty()) {
             envoyerEmail(emailPatient, sujet, contenu);
         } else {
@@ -165,14 +188,15 @@ public class MailService {
                 "<p>Un nouveau rendez-vous a été enregistré :</p>" +
                 "<table style='border-collapse: collapse; width: 100%;'>" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Patient</strong></td>" +
-                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getPatient().getNomPat() + "NonNullNode\n" +
+                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getPatient().getNomPat() + "</td>" +
+                "</tr>" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Date et heure</strong></td>" +
-                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getDateFormatee() + "NonNullNode\n" +
+                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getDateFormatee() + "</td>" +
+                "</tr>" +
                 "</table>" +
                 "<p>Cordialement,<br><strong>RDV Medical</strong></p>" +
                 "</body></html>";
 
-        String emailMedecin = rdv.getMedecin() != null ? rdv.getMedecin().getEmail() : null;
         if (emailMedecin != null && !emailMedecin.isEmpty()) {
             envoyerEmail(emailMedecin, sujetMedecin, contenuMedecin);
         } else {
@@ -194,6 +218,9 @@ public class MailService {
         System.out.println("Medecin email: " + (rdv.getMedecin() != null ? rdv.getMedecin().getEmail() : "null"));
         System.out.println("=================================");
 
+        String emailPatient = rdv.getPatient() != null ? rdv.getPatient().getEmail() : null;
+        String emailMedecin = rdv.getMedecin() != null ? rdv.getMedecin().getEmail() : null;
+
         String sujet = "Annulation de votre rendez-vous médical";
 
         String contenu = "<html><body style='font-family: Arial, sans-serif;'>" +
@@ -202,15 +229,16 @@ public class MailService {
                 "<p>Votre rendez-vous suivant a été annulé :</p>" +
                 "<table style='border-collapse: collapse; width: 100%;'>" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Médecin</strong></td>" +
-                "<td style='padding: 8px; border: 1px solid #ddd;'>Dr. " + rdv.getMedecin().getNommed() + "NonNullNode\n" +
+                "<td style='padding: 8px; border: 1px solid #ddd;'>Dr. " + rdv.getMedecin().getNommed() + "</td>" +
+                "</tr>" +
                 "<tr><td style='padding: 8px; border: 1px solid #ddd;'><strong>Date et heure</strong></td>" +
-                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getDateFormatee() + "NonNullNode\n" +
+                "<td style='padding: 8px; border: 1px solid #ddd;'>" + rdv.getDateFormatee() + "</td>" +
+                "</tr>" +
                 "</table>" +
                 "<p>Vous pouvez prendre un nouveau rendez-vous sur notre plateforme.</p>" +
                 "<p>Cordialement,<br><strong>RDV Medical</strong></p>" +
                 "</body></html>";
 
-        String emailPatient = rdv.getPatient() != null ? rdv.getPatient().getEmail() : null;
         if (emailPatient != null && !emailPatient.isEmpty()) {
             envoyerEmail(emailPatient, sujet, contenu);
         } else {
@@ -218,7 +246,6 @@ public class MailService {
         }
 
         String sujetMedecin = "Annulation RDV - " + rdv.getPatient().getNomPat();
-        String emailMedecin = rdv.getMedecin() != null ? rdv.getMedecin().getEmail() : null;
         if (emailMedecin != null && !emailMedecin.isEmpty()) {
             envoyerEmail(emailMedecin, sujetMedecin, contenu);
         } else {
