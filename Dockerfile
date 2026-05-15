@@ -9,7 +9,7 @@ RUN mvn clean package -DskipTests
 
 FROM tomcat:10.1-jdk17
 
-# Supprimer l'application par défaut
+# Supprimer l'application par defaut
 RUN rm -rf /usr/local/tomcat/webapps/*
 
 # Copier le WAR directement (Tomcat l'extraira automatiquement)
