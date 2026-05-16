@@ -19,34 +19,74 @@ public class Medecin {
     // Photo de profil
     private String photoProfile;
     
-    // NOUVEAUX CHAMPS POUR GÉOLOCALISATION
+    // Géolocalisation
     private String adresse;
     private Double latitude;
     private Double longitude;
+    
+    // NOUVEAU : Langue préférée du médecin
+    private String langue;
 
     // ── Constructeurs ────────────────────────────────────────────────────────
 
-    public Medecin() {}
+    public Medecin() {
+        this.langue = "fr"; // Langue par défaut
+    }
 
-    // Constructeur complet
     public Medecin(String idmed, String nommed, String specialite,
-                   int tauxHoraire, String lieu, String email, String telephone,
-                   String bio, String diplomes, String experience, 
-                   String photoProfile, String adresse, Double latitude, Double longitude) {
-        this.idmed = idmed;
-        this.nommed = nommed;
-        this.specialite = specialite;
+                   int tauxHoraire, String lieu, String email, String telephone) {
+        this.idmed       = idmed;
+        this.nommed      = nommed;
+        this.specialite  = specialite;
         this.tauxHoraire = tauxHoraire;
-        this.lieu = lieu;
-        this.email = email;
-        this.telephone = telephone;
-        this.bio = bio;
-        this.diplomes = diplomes;
-        this.experience = experience;
+        this.lieu        = lieu;
+        this.email       = email;
+        this.telephone   = telephone;
+        this.langue      = "fr";
+    }
+
+    public Medecin(String idmed, String nommed, String specialite,
+                   int tauxHoraire, String lieu, String email, String telephone, 
+                   String bio, String diplomes, String experience, String photoProfile,
+                   String adresse, Double latitude, Double longitude) {
+        this.idmed       = idmed;
+        this.nommed      = nommed;
+        this.specialite  = specialite;
+        this.tauxHoraire = tauxHoraire;
+        this.lieu        = lieu;
+        this.email       = email;
+        this.telephone   = telephone;
+        this.bio         = bio;
+        this.diplomes    = diplomes;
+        this.experience  = experience;
         this.photoProfile = photoProfile;
-        this.adresse = adresse;
-        this.latitude = latitude;
-        this.longitude = longitude;
+        this.adresse     = adresse;
+        this.latitude    = latitude;
+        this.longitude   = longitude;
+        this.langue      = "fr";
+    }
+
+    public Medecin(String idmed, String nommed, String specialite,
+                   int tauxHoraire, String lieu, String email, String telephone, 
+                   String motDePasse, String bio, String diplomes, String experience, 
+                   String photoProfile, String adresse, Double latitude, Double longitude, 
+                   String langue) {
+        this.idmed       = idmed;
+        this.nommed      = nommed;
+        this.specialite  = specialite;
+        this.tauxHoraire = tauxHoraire;
+        this.lieu        = lieu;
+        this.email       = email;
+        this.telephone   = telephone;
+        this.motDePasse  = motDePasse;
+        this.bio         = bio;
+        this.diplomes    = diplomes;
+        this.experience  = experience;
+        this.photoProfile = photoProfile;
+        this.adresse     = adresse;
+        this.latitude    = latitude;
+        this.longitude   = longitude;
+        this.langue      = langue != null ? langue : "fr";
     }
 
     // ── Getters & Setters ────────────────────────────────────────────────────
@@ -91,7 +131,6 @@ public class Medecin {
         return photoProfile != null && !photoProfile.trim().isEmpty();
     }
 
-    // NOUVEAUX GETTERS/SETTERS
     public String getAdresse() { return adresse; }
     public void setAdresse(String adresse) { this.adresse = adresse; }
 
@@ -101,7 +140,10 @@ public class Medecin {
     public Double getLongitude() { return longitude; }
     public void setLongitude(Double longitude) { this.longitude = longitude; }
     
-    // Méthodes utilitaires
+    // NOUVEAU
+    public String getLangue() { return langue; }
+    public void setLangue(String langue) { this.langue = langue; }
+    
     public boolean hasCoordinates() {
         return latitude != null && longitude != null;
     }
@@ -127,10 +169,9 @@ public class Medecin {
         return experience.trim();
     }
 
-    // Calcul de distance entre deux points (formule de Haversine)
     public double distanceTo(double lat, double lon) {
         if (latitude == null || longitude == null) return Double.MAX_VALUE;
-        final int R = 6371; // Rayon de la Terre en km
+        final int R = 6371;
         double latDistance = Math.toRadians(lat - latitude);
         double lonDistance = Math.toRadians(lon - longitude);
         double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2) +
@@ -143,12 +184,13 @@ public class Medecin {
     @Override
     public String toString() {
         return "Medecin{" +
-                "idmed='" + idmed + '\'' +
-                ", nommed='" + nommed + '\'' +
+                "idmed='"      + idmed      + '\'' +
+                ", nommed='"   + nommed     + '\'' +
                 ", specialite='" + specialite + '\'' +
-                ", lieu='" + lieu + '\'' +
-                ", email='" + email + '\'' +
+                ", lieu='"     + lieu       + '\'' +
+                ", email='"    + email      + '\'' +
                 ", telephone='" + telephone + '\'' +
+                ", langue='"   + langue     + '\'' +
                 '}';
     }
 }

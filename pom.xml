@@ -26,6 +26,13 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- JSON pour MessageServlet -->
+<dependency>
+    <groupId>org.json</groupId>
+    <artifactId>json</artifactId>
+    <version>20240303</version>
+</dependency>
+
         <!-- JSP API (fournie par Tomcat, ne pas inclure dans le WAR) -->
         <dependency>
             <groupId>jakarta.servlet.jsp</groupId>

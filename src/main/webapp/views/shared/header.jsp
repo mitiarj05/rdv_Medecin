@@ -548,7 +548,7 @@
             margin-bottom: 6px;
             transition: color 0.3s ease;
         }
-        .form-group input, .form-group select {
+        .form-group input, .form-group select, .form-group textarea {
             width: 100%;
             padding: 10px 14px;
             border: 1px solid var(--input-border);
@@ -558,7 +558,7 @@
             color: var(--text-primary);
             transition: all 0.2s ease;
         }
-        .form-group input:focus, .form-group select:focus {
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
             outline: none;
             border-color: var(--input-focus);
             box-shadow: 0 0 0 3px rgba(26,115,232,0.2);
@@ -662,6 +662,101 @@
             to { transform: rotate(360deg); }
         }
 
+        /* ===== NOUVEAUX STYLES POUR LANGUE ET MESSAGERIE ===== */
+        .langue-selector {
+            position: relative;
+        }
+        
+        .langue-toggle {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        
+        .langue-toggle:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.02);
+        }
+        
+        .langue-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--bg-card);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            min-width: 150px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .langue-dropdown.show {
+            display: block;
+        }
+        
+        .langue-item {
+            display: block;
+            padding: 10px 15px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: background 0.2s;
+        }
+        
+        .langue-item:hover {
+            background: var(--hover-bg);
+        }
+        
+        .message-icon {
+            position: relative;
+        }
+        
+        .message-icon a {
+            color: white;
+            text-decoration: none;
+            background: rgba(255,255,255,0.2);
+            padding: 10px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            transition: all 0.2s;
+        }
+        
+        .message-icon a:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+        
+        .unread-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ea4335;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 10px;
+            min-width: 18px;
+            text-align: center;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
         /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
             .sidebar {
@@ -687,10 +782,18 @@
             .logo p {
                 display: none;
             }
-            .menu-toggle-btn, .dark-mode-toggle {
+            .menu-toggle-btn, .dark-mode-toggle, .langue-toggle {
                 width: 42px;
                 height: 42px;
                 font-size: 18px;
+                padding: 0;
+                justify-content: center;
+            }
+            .langue-toggle span:first-child {
+                display: none;
+            }
+            .header-actions {
+                gap: 5px;
             }
         }
     </style>
@@ -722,19 +825,16 @@
 
                     <div class="sidebar-divider"></div>
 
-                    <!-- GESTION DES MÉDECINS -->
                     <a href="${pageContext.request.contextPath}/admin?action=medecins" class="sidebar-link">
                         <span class="sidebar-icon"><i class="fas fa-user-md"></i></span>
                         <span class="sidebar-text">Gérer les médecins</span>
                     </a>
 
-                    <!-- GESTION DES PATIENTS -->
                     <a href="${pageContext.request.contextPath}/admin?action=patients" class="sidebar-link">
                         <span class="sidebar-icon"><i class="fas fa-users"></i></span>
                         <span class="sidebar-text">Gérer les patients</span>
                     </a>
 
-                    <!-- GESTION DES RDV -->
                     <a href="${pageContext.request.contextPath}/admin?action=rdvs" class="sidebar-link">
                         <span class="sidebar-icon"><i class="fas fa-calendar-alt"></i></span>
                         <span class="sidebar-text">Tous les RDV</span>
@@ -742,7 +842,6 @@
 
                     <div class="sidebar-divider"></div>
 
-                    <!-- STATISTIQUES ET CLASSEMENTS -->
                     <a href="${pageContext.request.contextPath}/admin?action=top5Medecins" class="sidebar-link">
                         <span class="sidebar-icon"><i class="fas fa-chart-line"></i></span>
                         <span class="sidebar-text">Top 5 médecins</span>
@@ -756,9 +855,13 @@
                         <span class="sidebar-text">Calendrier général</span>
                     </a>
 
+                    <a href="${pageContext.request.contextPath}/medecin?action=map" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-map-marked-alt"></i></span>
+                        <span class="sidebar-text">Voir la carte</span>
+                    </a>
+
                     <div class="sidebar-divider"></div>
 
-                    <!-- PROFIL ADMIN -->
                     <a href="${pageContext.request.contextPath}/medecin?action=edit&id=${sessionScope.idUtilisateur}" class="sidebar-link">
                         <span class="sidebar-icon"><i class="fas fa-user-cog"></i></span>
                         <span class="sidebar-text">Mon profil</span>
@@ -773,6 +876,10 @@
                     <a href="${pageContext.request.contextPath}/search" class="sidebar-link">
                         <span class="sidebar-icon"><i class="fas fa-search"></i></span>
                         <span class="sidebar-text">Trouver un médecin</span>
+                    </a>
+                    <a href="${pageContext.request.contextPath}/patient?action=map" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-map-marked-alt"></i></span>
+                        <span class="sidebar-text">Voir la carte</span>
                     </a>
                     <a href="${pageContext.request.contextPath}/rdv?action=liste" class="sidebar-link">
                         <span class="sidebar-icon"><i class="fas fa-calendar-alt"></i></span>
@@ -796,6 +903,10 @@
                     <a href="${pageContext.request.contextPath}/medecin?action=dashboard" class="sidebar-link">
                         <span class="sidebar-icon"><i class="fas fa-tachometer-alt"></i></span>
                         <span class="sidebar-text">Dashboard</span>
+                    </a>
+                    <a href="${pageContext.request.contextPath}/medecin?action=map" class="sidebar-link">
+                        <span class="sidebar-icon"><i class="fas fa-map-marked-alt"></i></span>
+                        <span class="sidebar-text">Voir la carte</span>
                     </a>
                     <a href="${pageContext.request.contextPath}/rdv?action=liste" class="sidebar-link">
                         <span class="sidebar-icon"><i class="fas fa-calendar-alt"></i></span>
@@ -846,6 +957,40 @@
                 </div>
             </div>
             <div class="header-actions">
+                <!-- Sélecteur de langue -->
+                <div class="langue-selector">
+                    <button class="langue-toggle" id="langueToggleBtn">
+                        <i class="fas fa-globe"></i>
+                        <span id="currentLangue">
+                            <c:choose>
+                                <c:when test="${sessionScope.langue == 'en'}">EN</c:when>
+                                <c:when test="${sessionScope.langue == 'mg'}">MG</c:when>
+                                <c:otherwise>FR</c:otherwise>
+                            </c:choose>
+                        </span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="langue-dropdown" id="langueDropdown">
+                        <a href="${pageContext.request.contextPath}/changer-langue?langue=fr&returnUrl=${pageContext.request.requestURL}?${pageContext.request.queryString}" class="langue-item">
+                            <i class="fas fa-flag"></i> Français
+                        </a>
+                        <a href="${pageContext.request.contextPath}/changer-langue?langue=en&returnUrl=${pageContext.request.requestURL}?${pageContext.request.queryString}" class="langue-item">
+                            <i class="fas fa-flag"></i> English
+                        </a>
+                        <a href="${pageContext.request.contextPath}/changer-langue?langue=mg&returnUrl=${pageContext.request.requestURL}?${pageContext.request.queryString}" class="langue-item">
+                            <i class="fas fa-flag"></i> Malagasy
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Icône messagerie -->
+                <div class="message-icon">
+                    <a href="${pageContext.request.contextPath}/chat" title="Messagerie">
+                        <i class="fas fa-envelope"></i>
+                    </a>
+                    <span id="unreadCount" class="unread-badge" style="display: none;">0</span>
+                </div>
+                
                 <button class="dark-mode-toggle" id="darkModeToggleBtn" title="Thème sombre/clair"><i class="fas fa-moon"></i></button>
                 <div class="header-right">
                     <div class="user-name">
@@ -955,6 +1100,45 @@
             }
         });
     });
+    
+    // ===== SÉLECTEUR DE LANGUE =====
+    const langueToggleBtn = document.getElementById('langueToggleBtn');
+    const langueDropdown = document.getElementById('langueDropdown');
+    
+    if (langueToggleBtn) {
+        langueToggleBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            langueDropdown.classList.toggle('show');
+        });
+    }
+    
+    // Fermer le dropdown au clic ailleurs
+    window.addEventListener('click', function(e) {
+        if (langueDropdown && !langueToggleBtn.contains(e.target)) {
+            langueDropdown.classList.remove('show');
+        }
+    });
+    
+    // ===== CHARGER LE NOMBRE DE MESSAGES NON LUS =====
+    function loadUnreadCount() {
+        fetch('${pageContext.request.contextPath}/message?action=nonLus')
+            .then(response => response.json())
+            .then(data => {
+                const count = data.nonLus || 0;
+                const badge = document.getElementById('unreadCount');
+                if (count > 0) {
+                    badge.style.display = 'inline-block';
+                    badge.textContent = count > 99 ? '99+' : count;
+                } else {
+                    badge.style.display = 'none';
+                }
+            })
+            .catch(error => console.error('Erreur chargement non lus:', error));
+    }
+    
+    // Rafraîchir toutes les 30 secondes
+    loadUnreadCount();
+    setInterval(loadUnreadCount, 30000);
 </script>
 
 </body>

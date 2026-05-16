@@ -31,7 +31,8 @@ public class AuthFilter implements Filter {
             ".png",
             ".jpg",
             ".jpeg",
-            ".gif"
+            ".gif",
+            "/chat"
     };
 
     // Pages réservées aux médecins SEULEMENT
@@ -54,7 +55,10 @@ public class AuthFilter implements Filter {
     // Pages accessibles à tous les utilisateurs connectés (peu importe le rôle)
     private static final String[] PAGES_ACCESSIBLES_TOUS = {
             "/calendar",
-            "/views/shared/calendar.jsp"
+            "/views/shared/calendar.jsp",
+            "/changer-langue",
+            "/message",
+            "/api/doctors-list"  // ← NOUVEAU : API pour lister les médecins
     };
 
     // Pages réservées à l'ADMIN
@@ -99,7 +103,6 @@ public class AuthFilter implements Filter {
         String idUtilisateur = (String) session.getAttribute("idUtilisateur");
 
         // 🔥 NOUVEAU : Détecter et convertir le rôle ADMIN
-        // Vérifier si l'utilisateur est un médecin avec l'email admin@rdv.com
         if ("medecin".equals(role) && session.getAttribute("utilisateur") != null) {
             Object utilisateur = session.getAttribute("utilisateur");
             if (utilisateur instanceof Medecin) {
@@ -136,7 +139,7 @@ public class AuthFilter implements Filter {
 
         // ✅ Vérification PRIORITAIRE pour les pages accessibles à tous les utilisateurs connectés
         for (String page : PAGES_ACCESSIBLES_TOUS) {
-            if (chemin.startsWith(page) || chemin.equals(page)) {
+            if (chemin.startsWith(page) || chemin.equals(page) || cheminComplet.startsWith(page)) {
                 System.out.println("[AuthFilter] Page accessible à tous: " + page);
                 chain.doFilter(request, response);
                 return;
@@ -186,7 +189,6 @@ public class AuthFilter implements Filter {
 
         // ✅ Vérification spécifique pour /medecin
         if (chemin.startsWith("/medecin")) {
-            // L'admin est autorisé à accéder à /medecin aussi
             if (!"medecin".equals(role) && !"admin".equals(role)) {
                 System.out.println("[AuthFilter] Accès à /medecin refusé pour " + role);
                 if ("patient".equals(role)) {

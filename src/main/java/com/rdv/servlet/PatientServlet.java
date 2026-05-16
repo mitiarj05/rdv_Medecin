@@ -26,6 +26,7 @@ public class PatientServlet extends HttpServlet {
 
     private final PatientService patientService = new PatientService();
     private final RdvService rdvService = new RdvService();
+    private final MedecinService medecinService = new MedecinService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -41,7 +42,6 @@ public class PatientServlet extends HttpServlet {
 
         switch (action) {
             case "liste":
-                // Récupérer TOUS les patients
                 List<Patient> listePatients = patientService.listerTous();
                 System.out.println("[PatientServlet] Nombre de patients trouvés: " + (listePatients != null ? listePatients.size() : 0));
                 req.setAttribute("patients", listePatients);
@@ -51,6 +51,11 @@ public class PatientServlet extends HttpServlet {
             case "dashboard":
                 System.out.println("[PatientServlet] Affichage dashboard");
                 afficherDashboard(req, resp);
+                break;
+                
+            // ========== NOUVEAU : Carte pour patient ==========
+            case "map":
+                afficherCarte(req, resp);
                 break;
 
             case "form":
@@ -75,7 +80,6 @@ public class PatientServlet extends HttpServlet {
             case "supprimer":
                 String idSupp = req.getParameter("id");
                 
-                // Récupérer les infos de session
                 HttpSession sessionSupp = req.getSession(false);
                 String idPatientConnecte = null;
                 String roleUtilisateur = null;
@@ -85,28 +89,22 @@ public class PatientServlet extends HttpServlet {
                     roleUtilisateur = (String) sessionSupp.getAttribute("role");
                 }
                 
-                // Vérifier si c'est le patient lui-même ou un admin
                 boolean isSelfDelete = "patient".equals(roleUtilisateur) && idSupp != null && idSupp.equals(idPatientConnecte);
                 
-                // Effectuer la suppression
                 boolean supprimeReussi = patientService.supprimer(idSupp);
                 
                 if (supprimeReussi && isSelfDelete) {
-                    // Patient supprime son propre compte → déconnexion et redirection vers login
                     sessionSupp.invalidate();
                     resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp?msg=account_deleted");
                 } else if (supprimeReussi) {
-                    // Admin ou autre → redirection vers la liste
                     resp.sendRedirect(req.getContextPath() + "/patient?action=liste");
                 } else {
-                    // Erreur lors de la suppression
                     resp.sendRedirect(req.getContextPath() + "/patient?action=liste&error=suppression");
                 }
                 break;
 
             case "top5":
                 System.out.println("[PatientServlet] Affichage Top 5 médecins");
-                MedecinService medecinService = new MedecinService();
                 List<Medecin> top5 = medecinService.top5PlusConsultes();
                 req.setAttribute("top5", top5);
                 req.getRequestDispatcher("/views/patient/top5.jsp").forward(req, resp);
@@ -131,14 +129,13 @@ public class PatientServlet extends HttpServlet {
             String nom = req.getParameter("nom_pat");
             String datenais = req.getParameter("datenais");
             String email = req.getParameter("email");
-            String telephone = req.getParameter("telephone"); // NOUVEAU
+            String telephone = req.getParameter("telephone");
             String password = req.getParameter("password");
 
             HttpSession session = req.getSession(false);
             String role = (session != null) ? (String) session.getAttribute("role") : null;
 
             if (id != null && !id.trim().isEmpty()) {
-                // MODIFICATION d'un patient existant - avec téléphone
                 System.out.println("[PatientServlet] Modification patient ID: " + id);
                 String erreur = patientService.modifier(id, nom, datenais, email, telephone);
 
@@ -157,7 +154,6 @@ public class PatientServlet extends HttpServlet {
                     session.setAttribute("messageSucces", "Profil modifié avec succès !");
                 }
                 
-                // Redirection après modification
                 if ("patient".equals(role)) {
                     resp.sendRedirect(req.getContextPath() + "/patient?action=dashboard");
                 } else {
@@ -166,7 +162,6 @@ public class PatientServlet extends HttpServlet {
                 return;
                 
             } else {
-                // CRÉATION d'un nouveau patient - avec téléphone
                 System.out.println("[PatientServlet] Création nouveau patient");
                 String erreur = patientService.inscrire(nom, datenais, email, telephone, password);
                 
@@ -178,12 +173,10 @@ public class PatientServlet extends HttpServlet {
 
                 Patient nouveauPatient = patientService.trouverParEmail(email);
                 if (session != null && nouveauPatient != null) {
-                    // Si l'utilisateur est déjà connecté (admin qui crée un patient)
                     if (session.getAttribute("utilisateur") != null) {
                         session.setAttribute("messageSucces", "Patient créé avec succès !");
                         resp.sendRedirect(req.getContextPath() + "/patient?action=liste");
                     } else {
-                        // Nouvelle inscription (patient qui se crée lui-même)
                         session.setAttribute("utilisateur", nouveauPatient);
                         session.setAttribute("idUtilisateur", nouveauPatient.getIdpat());
                         session.setAttribute("role", "patient");
@@ -197,7 +190,6 @@ public class PatientServlet extends HttpServlet {
             }
         }
 
-        // Action non reconnue
         resp.sendRedirect(req.getContextPath() + "/patient?action=liste");
     }
 
@@ -228,13 +220,11 @@ public class PatientServlet extends HttpServlet {
             session.setAttribute("utilisateur", patientFresh);
         }
 
-        // Récupérer tous les RDV du patient
         List<Rdv> rdvs = rdvService.listerParPatient(patientSession.getIdpat());
         System.out.println("[PatientServlet] Nombre de RDV trouvés: " + (rdvs != null ? rdvs.size() : 0));
 
         LocalDateTime now = LocalDateTime.now();
 
-        // Statistiques
         long rdvTotal = rdvs != null ? rdvs.size() : 0;
         long rdvAVenir = 0;
         long rdvPasses = 0;
@@ -248,7 +238,6 @@ public class PatientServlet extends HttpServlet {
                     .count();
         }
 
-        // Nombre de médecins différents consultés
         long nbMedecinsConsultes = 0;
         if (rdvs != null) {
             nbMedecinsConsultes = rdvs.stream()
@@ -257,7 +246,6 @@ public class PatientServlet extends HttpServlet {
                     .count();
         }
 
-        // Taux d'assiduité (pourcentage de RDV honorés)
         long rdvConfirmes = 0;
         if (rdvs != null) {
             rdvConfirmes = rdvs.stream()
@@ -266,7 +254,6 @@ public class PatientServlet extends HttpServlet {
         }
         int tauxAssiduite = rdvTotal > 0 ? (int) ((rdvConfirmes * 100) / rdvTotal) : 0;
 
-        // Prochain rendez-vous
         Rdv prochainRdv = null;
         if (rdvs != null && !rdvs.isEmpty()) {
             prochainRdv = rdvs.stream()
@@ -275,7 +262,6 @@ public class PatientServlet extends HttpServlet {
                     .orElse(null);
         }
 
-        // Derniers RDV (5 derniers)
         List<Rdv> derniersRdvs = new ArrayList<>();
         if (rdvs != null) {
             derniersRdvs = rdvs.stream()
@@ -284,7 +270,6 @@ public class PatientServlet extends HttpServlet {
                     .collect(Collectors.toList());
         }
 
-        // Ajouter les attributs à la requête
         req.setAttribute("nbRdvTotal", rdvTotal);
         req.setAttribute("rdvAVenir", rdvAVenir);
         req.setAttribute("rdvPasses", rdvPasses);
@@ -301,5 +286,19 @@ public class PatientServlet extends HttpServlet {
 
         System.out.println("[PatientServlet] Forward vers /views/patient/dashboard.jsp");
         req.getRequestDispatcher("/views/patient/dashboard.jsp").forward(req, resp);
+    }
+    
+    /**
+     * Affiche la carte interactive des médecins pour les patients
+     */
+    private void afficherCarte(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        
+        List<Medecin> medecins = medecinService.listerAvecCoordonnees();
+        List<String> specialites = medecinService.listerSpecialites();
+        
+        req.setAttribute("medecins", medecins);
+        req.setAttribute("specialites", specialites);
+        req.getRequestDispatcher("/views/medecin/map.jsp").forward(req, resp);
     }
 }
