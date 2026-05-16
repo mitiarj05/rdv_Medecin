@@ -23,7 +23,7 @@ public class MedecinDAO {
             return false;
         }
         
-        // 🔥 NOUVEAU : Vérifier si le téléphone existe déjà
+        // Vérifier si le téléphone existe déjà
         if (medecin.getTelephone() != null && !medecin.getTelephone().isEmpty()) {
             if (telephoneExiste(medecin.getTelephone(), null)) {
                 System.err.println("[MedecinDAO] Le téléphone " + medecin.getTelephone() + " est déjà utilisé");
@@ -53,7 +53,7 @@ public class MedecinDAO {
         }
     }
 
-    // ── VÉRIFICATION TÉLÉPHONE UNIQUE (NOUVELLE MÉTHODE) ────────────────────────
+    // ── VÉRIFICATION TÉLÉPHONE UNIQUE ────────────────────────────────────────
     
     /**
      * Vérifie si un numéro de téléphone existe déjà chez un médecin ou un patient
@@ -412,7 +412,7 @@ public class MedecinDAO {
             return false;
         }
         
-        // 🔥 NOUVEAU : Vérifier si le téléphone existe déjà chez un autre médecin ou patient
+        // Vérifier si le téléphone existe déjà chez un autre médecin ou patient
         if (medecin.getTelephone() != null && !medecin.getTelephone().isEmpty()) {
             if (telephoneExiste(medecin.getTelephone(), medecin.getIdmed())) {
                 System.err.println("[MedecinDAO] Impossible de modifier: le téléphone " + medecin.getTelephone() + " est déjà utilisé par un autre compte");
