@@ -12,12 +12,17 @@ import com.zaxxer.hikari.HikariDataSource;
 
 /**
  * Gestionnaire de connexion à PostgreSQL via HikariCP.
- * Gère les URLs Render au format postgres://user:pass@host:port/db
+ * Fonctionne sur Render (variables d'env) ET en local (valeurs par défaut)
  */
 public class DBConnection {
 
     private static HikariDataSource dataSource;
     private static boolean initialized = false;
+
+    // Valeurs par défaut pour le développement local
+    private static final String DEFAULT_URL = "jdbc:postgresql://localhost:5432/rdv_medical";
+    private static final String DEFAULT_USERNAME = "postgres";
+    private static final String DEFAULT_PASSWORD = "mitiarj";
 
     private DBConnection() {}
 
@@ -30,78 +35,89 @@ public class DBConnection {
         try {
             HikariConfig config = new HikariConfig();
 
-            String dbUrl      = System.getenv("DB_URL");
+            // 1. Essayer les variables d'environnement (Render)
+            String dbUrl = System.getenv("DB_URL");
             String dbUsername = System.getenv("DB_USERNAME");
             String dbPassword = System.getenv("DB_PASSWORD");
 
-            System.out.println("[DBConnection] DB_URL     : " + (dbUrl      != null ? "✓ trouvé" : "✗ absent"));
-            System.out.println("[DBConnection] DB_USERNAME: " + (dbUsername != null ? "✓ trouvé" : "✗ absent"));
-            System.out.println("[DBConnection] DB_PASSWORD: " + (dbPassword != null ? "✓ trouvé" : "✗ absent"));
+            System.out.println("[DBConnection] ===========================================");
+            System.out.println("[DBConnection] 🔍 RECHERCHE CONFIGURATION BASE DE DONNÉES");
+            System.out.println("[DBConnection] DB_URL      : " + (dbUrl != null ? "✅ TROUVÉE (Render)" : "❌ NON TROUVÉE"));
+            System.out.println("[DBConnection] DB_USERNAME : " + (dbUsername != null ? "✅ TROUVÉ" : "❌ NON TROUVÉ"));
+            System.out.println("[DBConnection] DB_PASSWORD : " + (dbPassword != null ? "✅ TROUVÉ" : "❌ NON TROUVÉ"));
 
-            if (dbUrl != null) {
-                String jdbcUrl;
-                String username = dbUsername;
-                String password = dbPassword;
+            String finalUrl;
+            String finalUsername;
+            String finalPassword;
+
+            if (dbUrl != null && !dbUrl.isEmpty()) {
+                // ==================== MODE RENDER ====================
+                System.out.println("[DBConnection] 📡 MODE RENDER - Utilisation des variables d'environnement");
 
                 if (dbUrl.startsWith("jdbc:postgresql://")) {
-                    // Déjà au format JDBC propre
-                    jdbcUrl = dbUrl;
-                    if (!jdbcUrl.contains("sslmode")) {
-                        jdbcUrl += (jdbcUrl.contains("?") ? "&" : "?") + "sslmode=require";
+                    finalUrl = dbUrl;
+                    if (!finalUrl.contains("sslmode")) {
+                        finalUrl += (finalUrl.contains("?") ? "&" : "?") + "sslmode=require";
                     }
                 } else {
                     // Format natif Render : postgres://user:pass@host:port/db
                     String normalized = dbUrl
                             .replace("postgres://", "http://")
                             .replace("postgresql://", "http://");
-
                     URI uri = new URI(normalized);
-
-                    String host   = uri.getHost();
-                    int    port   = uri.getPort() != -1 ? uri.getPort() : 5432;
+                    String host = uri.getHost();
+                    int port = uri.getPort() != -1 ? uri.getPort() : 5432;
                     String dbName = uri.getPath().replaceFirst("/", "");
-                    String userInfo = uri.getUserInfo(); // user:pass
-
-                    // URL JDBC propre SANS credentials dedans
-                    jdbcUrl = "jdbc:postgresql://" + host + ":" + port + "/" + dbName + "?sslmode=require";
-
-                    // Extraire user/pass depuis l'URL si non fournis séparément
+                    String userInfo = uri.getUserInfo();
+                    
+                    finalUrl = "jdbc:postgresql://" + host + ":" + port + "/" + dbName + "?sslmode=require";
+                    
                     if (userInfo != null && !userInfo.isEmpty()) {
                         String[] parts = userInfo.split(":", 2);
-                        if (username == null) username = parts[0];
-                        if (password == null && parts.length > 1) password = parts[1];
+                        if (dbUsername == null) dbUsername = parts[0];
+                        if (dbPassword == null && parts.length > 1) dbPassword = parts[1];
                     }
                 }
-
-                System.out.println("[DBConnection] JDBC URL : " + jdbcUrl);
-                System.out.println("[DBConnection] Username : " + username);
-
-                config.setJdbcUrl(jdbcUrl);
-                config.setUsername(username);
-                config.setPassword(password);
-                config.setDriverClassName("org.postgresql.Driver");
+                finalUsername = dbUsername;
+                finalPassword = dbPassword;
+                
+                System.out.println("[DBConnection] 📡 URL: " + finalUrl);
+                System.out.println("[DBConnection] 📡 Utilisateur: " + finalUsername);
 
             } else {
-                // Fallback local : fichier db.properties
-                System.out.println("[DBConnection] Lecture de db.properties (mode développement)...");
+                // ==================== MODE LOCAL ====================
+                // 2. Essayer de lire db.properties
+                System.out.println("[DBConnection] 💻 MODE LOCAL - Recherche de db.properties...");
+                
                 Properties props = new Properties();
                 InputStream input = DBConnection.class
                         .getClassLoader()
                         .getResourceAsStream("db.properties");
 
-                if (input == null) {
-                    throw new RuntimeException("db.properties introuvable et DB_URL non défini !");
+                if (input != null) {
+                    props.load(input);
+                    finalUrl = props.getProperty("db.url");
+                    finalUsername = props.getProperty("db.username");
+                    finalPassword = props.getProperty("db.password");
+                    System.out.println("[DBConnection] ✅ db.properties trouvé !");
+                } else {
+                    // 3. Utiliser les valeurs par défaut
+                    System.out.println("[DBConnection] ⚠️ db.properties non trouvé, utilisation des valeurs par défaut");
+                    finalUrl = DEFAULT_URL;
+                    finalUsername = DEFAULT_USERNAME;
+                    finalPassword = DEFAULT_PASSWORD;
                 }
-                props.load(input);
-
-                config.setJdbcUrl(props.getProperty("db.url"));
-                config.setUsername(props.getProperty("db.username"));
-                config.setPassword(props.getProperty("db.password"));
-                config.setDriverClassName("org.postgresql.Driver");
-                System.out.println("[DBConnection] ✅ Configuration depuis db.properties");
+                
+                System.out.println("[DBConnection] 💻 URL: " + finalUrl);
+                System.out.println("[DBConnection] 💻 Utilisateur: " + finalUsername);
             }
 
-            // Paramètres du pool (free tier Render : max 5 connexions)
+            config.setJdbcUrl(finalUrl);
+            config.setUsername(finalUsername);
+            config.setPassword(finalPassword);
+            config.setDriverClassName("org.postgresql.Driver");
+
+            // Paramètres du pool
             config.setMaximumPoolSize(5);
             config.setMinimumIdle(1);
             config.setConnectionTimeout(30000);
@@ -112,7 +128,8 @@ public class DBConnection {
 
             dataSource = new HikariDataSource(config);
             initialized = true;
-            System.out.println("[DBConnection] ✅ Pool PostgreSQL initialisé avec succès.");
+            System.out.println("[DBConnection] ✅ Pool PostgreSQL initialisé avec succès !");
+            System.out.println("[DBConnection] ===========================================");
 
         } catch (IOException e) {
             throw new RuntimeException("Erreur lecture db.properties : " + e.getMessage(), e);
