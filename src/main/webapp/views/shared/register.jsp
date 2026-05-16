@@ -596,6 +596,15 @@
                 </div>
                 <div class="section-title"><i class="fas fa-lock"></i> Informations de connexion</div>
                 <div class="form-group">
+                    <label for="pat-telephone">📱 Numéro de téléphone</label>
+                    <div class="pw-wrap">
+                        <input type="tel" name="telephone" id="pat-telephone"
+                                placeholder="Ex: 0330000000 ou +261330000000"
+                                pattern="[0-9+]{9,15}">
+                    </div>
+                <div class="pw-hint" style="margin-top: 2px;">Format:+261330000000 (optionnel)</div>
+                </div>
+                <div class="form-group">
                     <label for="pat-email">Adresse email</label>
                     <input type="email" name="email" id="pat-email" placeholder="votre@email.com" autocomplete="email">
                 </div>
@@ -651,6 +660,15 @@
                     <input type="text" name="lieu" id="med-lieu" placeholder="Ex : Antananarivo">
                 </div>
                 <div class="section-title"><i class="fas fa-lock"></i> Informations de connexion</div>
+                <div class="form-group">
+                    <label for="med-telephone">📱 Numéro de téléphone</label>
+                    <div class="pw-wrap">
+                            <input type="tel" name="telephone" id="med-telephone"
+                                    placeholder="Ex: 0330000000 ou +261330000000"
+                                    pattern="[0-9+]{9,15}">
+                </div>
+                <div class="pw-hint" style="margin-top: 2px;">Format: 0330000000 ou +261330000000 (optionnel)</div>
+                </div>
                 <div class="form-group">
                     <label for="med-email">Adresse email</label>
                     <input type="email" name="email" id="med-email" placeholder="votre@email.com" autocomplete="email">

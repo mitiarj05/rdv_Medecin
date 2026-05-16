@@ -13,8 +13,9 @@ import com.rdv.model.Rdv;
  */
 public class RdvService {
 
-    private final RdvDAO     rdvDAO     = new RdvDAO();
+    private final RdvDAO rdvDAO = new RdvDAO();
     private final MailService mailService = new MailService();
+    private final NotificationService notificationService = new NotificationService(); // NOUVEAU
 
     // ── Prendre un RDV ────────────────────────────────────────────────────────
 
@@ -60,6 +61,7 @@ public class RdvService {
             if (nouveauRdv.getIdmed().equals(idmed)) {
                 try {
                     mailService.envoyerConfirmation(nouveauRdv);
+                    notificationService.notifierNouveauRendezVous(nouveauRdv); // NOUVEAU
                 } catch (Exception e) {
                     System.err.println("[RdvService] Mail non envoyé : " + e.getMessage());
                 }
@@ -93,6 +95,7 @@ public class RdvService {
         // Envoyer mail d'annulation
         try {
             mailService.envoyerAnnulation(rdv);
+            notificationService.notifierAnnulationRendezVous(rdv); // NOUVEAU
         } catch (Exception e) {
             System.err.println("[RdvService] Mail annulation non envoyé : " + e.getMessage());
         }
@@ -158,7 +161,10 @@ public class RdvService {
         // (que ce soit une modification ou une remise en confirmé)
         try {
             Rdv rdvMaj = rdvDAO.trouverParId(idRdv);
-            if (rdvMaj != null) mailService.envoyerConfirmation(rdvMaj);
+            if (rdvMaj != null) {
+                mailService.envoyerConfirmation(rdvMaj);
+                notificationService.notifierNouveauRendezVous(rdvMaj); // NOUVEAU
+            }
         } catch (Exception e) {
             System.err.println("[RdvService] Mail non envoyé : " + e.getMessage());
         }

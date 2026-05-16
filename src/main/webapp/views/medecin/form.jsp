@@ -56,6 +56,17 @@
                        placeholder="medecin@email.com" required>
             </div>
 
+            <!-- NOUVEAU : Champ Téléphone -->
+            <div class="form-group">
+                <label>📱 Numéro de téléphone</label>
+                <input type="tel" name="telephone" id="telephone"
+                       value="${medecin.telephone}"
+                       placeholder="Ex: 0330000000 ou +261330000000"
+                       pattern="[0-9+]{9,15}"
+                       title="Format: 0330000000 ou +261330000000">
+                <small style="color: #666; font-size: 11px;">Format accepté: 0330000000 ou +261330000000 (recevra SMS/WhatsApp)</small>
+            </div>
+
             <c:if test="${empty medecin}">
                 <div class="form-group">
                     <label>Mot de passe</label>

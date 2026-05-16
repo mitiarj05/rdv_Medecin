@@ -119,15 +119,18 @@ public class MedecinServlet extends HttpServlet {
 
         if ("enregistrer".equals(action)) {
             String id = req.getParameter("idmed");
+            String telephone = req.getParameter("telephone"); // NOUVEAU
 
             if (id != null && !id.isEmpty()) {
+                // MODIFICATION - avec téléphone
                 String erreur = medecinService.modifier(
                         id,
                         req.getParameter("nommed"),
                         req.getParameter("specialite"),
                         req.getParameter("taux_horaire"),
                         req.getParameter("lieu"),
-                        req.getParameter("email")
+                        req.getParameter("email"),
+                        telephone
                 );
                 if (erreur != null) {
                     req.setAttribute("erreur", erreur);
@@ -146,12 +149,14 @@ public class MedecinServlet extends HttpServlet {
                     }
                 }
             } else {
+                // CRÉATION - avec téléphone
                 String erreur = medecinService.inscrire(
                         req.getParameter("nommed"),
                         req.getParameter("specialite"),
                         req.getParameter("taux_horaire"),
                         req.getParameter("lieu"),
                         req.getParameter("email"),
+                        telephone,
                         req.getParameter("password")
                 );
                 if (erreur != null) {

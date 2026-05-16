@@ -232,16 +232,17 @@ public class AdminServlet extends HttpServlet {
         String tauxStr = req.getParameter("taux_horaire");
         String lieu = req.getParameter("lieu");
         String email = req.getParameter("email");
+        String telephone = req.getParameter("telephone"); // NOUVEAU
         String password = req.getParameter("password");
 
         String erreur = null;
 
         if (id != null && !id.isEmpty()) {
-            // MODIFICATION
-            erreur = medecinService.modifier(id, nom, specialite, tauxStr, lieu, email);
+            // MODIFICATION - avec téléphone
+            erreur = medecinService.modifier(id, nom, specialite, tauxStr, lieu, email, telephone);
         } else {
-            // CRÉATION
-            erreur = medecinService.inscrire(nom, specialite, tauxStr, lieu, email, password);
+            // CRÉATION - avec téléphone
+            erreur = medecinService.inscrire(nom, specialite, tauxStr, lieu, email, telephone, password);
         }
 
         if (erreur != null) {
@@ -265,16 +266,17 @@ public class AdminServlet extends HttpServlet {
         String nom = req.getParameter("nom_pat");
         String datenais = req.getParameter("datenais");
         String email = req.getParameter("email");
+        String telephone = req.getParameter("telephone"); // NOUVEAU
         String password = req.getParameter("password");
 
         String erreur = null;
 
         if (id != null && !id.isEmpty()) {
-            // MODIFICATION
-            erreur = patientService.modifier(id, nom, datenais, email);
+            // MODIFICATION - avec téléphone
+            erreur = patientService.modifier(id, nom, datenais, email, telephone);
         } else {
-            // CRÉATION
-            erreur = patientService.inscrire(nom, datenais, email, password);
+            // CRÉATION - avec téléphone
+            erreur = patientService.inscrire(nom, datenais, email, telephone, password);
         }
 
         if (erreur != null) {

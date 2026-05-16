@@ -18,14 +18,13 @@ public class MedecinDAO {
     // ── CREATE ───────────────────────────────────────────────────────────────
 
     public boolean inserer(Medecin medecin) {
-        // Vérifier si l'email existe déjà (chez médecin ou patient)
         if (emailExiste(medecin.getEmail())) {
             System.err.println("[MedecinDAO] L'email " + medecin.getEmail() + " est déjà utilisé par un autre compte");
             return false;
         }
 
-        String sql = "INSERT INTO medecin (nommed, specialite, taux_horaire, lieu, email, mot_de_passe) " +
-                "VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO medecin (nommed, specialite, taux_horaire, lieu, email, telephone, mot_de_passe) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -35,7 +34,8 @@ public class MedecinDAO {
             ps.setInt(3, medecin.getTauxHoraire());
             ps.setString(4, medecin.getLieu());
             ps.setString(5, medecin.getEmail());
-            ps.setString(6, medecin.getMotDePasse());
+            ps.setString(6, medecin.getTelephone());
+            ps.setString(7, medecin.getMotDePasse());
 
             return ps.executeUpdate() == 1;
 
@@ -47,23 +47,13 @@ public class MedecinDAO {
 
     // ── VÉRIFICATION EMAIL ───────────────────────────────────────────────────
 
-    /**
-     * Vérifie si un email existe déjà chez les médecins ou les patients
-     * @param email L'email à vérifier
-     * @return true si l'email existe déjà, false sinon
-     */
     public boolean emailExiste(String email) {
-        if (email == null || email.isEmpty()) {
-            return false;
-        }
+        if (email == null || email.isEmpty()) return false;
 
-        // Vérifier dans la table medecin
         String sqlMedecin = "SELECT COUNT(*) FROM medecin WHERE email = ?";
-        // Vérifier dans la table patient
         String sqlPatient = "SELECT COUNT(*) FROM patient WHERE email = ?";
         
         try (Connection conn = DBConnection.getConnection()) {
-            // Vérifier chez les médecins
             try (PreparedStatement ps = conn.prepareStatement(sqlMedecin)) {
                 ps.setString(1, email);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -73,8 +63,6 @@ public class MedecinDAO {
                     }
                 }
             }
-            
-            // Vérifier chez les patients
             try (PreparedStatement ps = conn.prepareStatement(sqlPatient)) {
                 ps.setString(1, email);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -85,52 +73,33 @@ public class MedecinDAO {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("[MedecinDAO] Erreur lors de la vérification de l'email : " + e.getMessage());
+            System.err.println("[MedecinDAO] Erreur emailExiste: " + e.getMessage());
         }
         return false;
     }
 
-    /**
-     * Vérifie si un email appartient à un autre médecin (pour la modification)
-     * @param email L'email à vérifier
-     * @param idMedecin L'ID du médecin actuel (à exclure de la vérification)
-     * @return true si l'email existe chez un autre médecin ou chez un patient, false sinon
-     */
     public boolean emailExistePourAutreMedecin(String email, String idMedecin) {
-        if (email == null || email.isEmpty() || idMedecin == null || idMedecin.isEmpty()) {
-            return false;
-        }
+        if (email == null || email.isEmpty() || idMedecin == null || idMedecin.isEmpty()) return false;
 
-        // Vérifier dans la table medecin (en excluant le médecin actuel)
         String sqlMedecin = "SELECT COUNT(*) FROM medecin WHERE email = ? AND idmed::text != ?";
-        // Vérifier dans la table patient
         String sqlPatient = "SELECT COUNT(*) FROM patient WHERE email = ?";
         
         try (Connection conn = DBConnection.getConnection()) {
-            // Vérifier chez les autres médecins
             try (PreparedStatement ps = conn.prepareStatement(sqlMedecin)) {
                 ps.setString(1, email);
                 ps.setString(2, idMedecin);
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next() && rs.getInt(1) > 0) {
-                        System.out.println("[MedecinDAO] Email " + email + " trouvé chez un autre médecin");
-                        return true;
-                    }
+                    if (rs.next() && rs.getInt(1) > 0) return true;
                 }
             }
-            
-            // Vérifier chez les patients
             try (PreparedStatement ps = conn.prepareStatement(sqlPatient)) {
                 ps.setString(1, email);
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next() && rs.getInt(1) > 0) {
-                        System.out.println("[MedecinDAO] Email " + email + " trouvé chez un patient");
-                        return true;
-                    }
+                    if (rs.next() && rs.getInt(1) > 0) return true;
                 }
             }
         } catch (SQLException e) {
-            System.err.println("[MedecinDAO] Erreur lors de la vérification de l'email : " + e.getMessage());
+            System.err.println("[MedecinDAO] Erreur emailExistePourAutreMedecin: " + e.getMessage());
         }
         return false;
     }
@@ -139,7 +108,7 @@ public class MedecinDAO {
 
     public List<Medecin> listerTous() {
         List<Medecin> liste = new ArrayList<>();
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone " +
                 "FROM medecin WHERE email != 'admin@rdv.com' ORDER BY nommed";
 
         try (Connection conn = DBConnection.getConnection();
@@ -156,12 +125,9 @@ public class MedecinDAO {
         return liste;
     }
 
-    /**
-     * Liste tous les médecins SANS exclure l'admin (pour l'affichage spécial admin)
-     */
     public List<Medecin> listerTousAvecAdmin() {
         List<Medecin> liste = new ArrayList<>();
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone " +
                 "FROM medecin ORDER BY nommed";
 
         try (Connection conn = DBConnection.getConnection();
@@ -179,9 +145,7 @@ public class MedecinDAO {
     }
 
     public Medecin trouverParId(String idmed) {
-        if (idmed == null || idmed.isEmpty()) {
-            return null;
-        }
+        if (idmed == null || idmed.isEmpty()) return null;
 
         try {
             UUID.fromString(idmed);
@@ -190,7 +154,7 @@ public class MedecinDAO {
             return null;
         }
 
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone " +
                 "FROM medecin WHERE idmed::text = ?";
 
         try (Connection conn = DBConnection.getConnection();
@@ -208,7 +172,7 @@ public class MedecinDAO {
     }
 
     public Medecin trouverParEmail(String email) {
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, mot_de_passe " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, mot_de_passe " +
                 "FROM medecin WHERE email = ?";
 
         try (Connection conn = DBConnection.getConnection();
@@ -233,7 +197,7 @@ public class MedecinDAO {
 
     public List<Medecin> rechercherParNom(String motCle) {
         List<Medecin> liste = new ArrayList<>();
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone " +
                 "FROM medecin WHERE nommed ILIKE ? AND email != 'admin@rdv.com' ORDER BY nommed";
 
         try (Connection conn = DBConnection.getConnection();
@@ -254,7 +218,7 @@ public class MedecinDAO {
 
     public List<Medecin> listerParSpecialite(String specialite) {
         List<Medecin> liste = new ArrayList<>();
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone " +
                 "FROM medecin WHERE specialite = ? AND email != 'admin@rdv.com' ORDER BY nommed";
 
         try (Connection conn = DBConnection.getConnection();
@@ -293,12 +257,12 @@ public class MedecinDAO {
 
     public List<Medecin> top5PlusConsultes() {
         List<Medecin> liste = new ArrayList<>();
-        String sql = "SELECT m.idmed::text, m.nommed, m.specialite, m.taux_horaire, m.lieu, m.email, " +
+        String sql = "SELECT m.idmed::text, m.nommed, m.specialite, m.taux_horaire, m.lieu, m.email, m.telephone, " +
                 "COUNT(r.idrdv) AS nb_consultations " +
                 "FROM medecin m " +
                 "JOIN rdv r ON m.idmed = r.idmed " +
                 "WHERE r.statut = 'CONFIRME' AND m.email != 'admin@rdv.com' " +
-                "GROUP BY m.idmed, m.nommed, m.specialite, m.taux_horaire, m.lieu, m.email " +
+                "GROUP BY m.idmed, m.nommed, m.specialite, m.taux_horaire, m.lieu, m.email, m.telephone " +
                 "ORDER BY nb_consultations DESC " +
                 "LIMIT 5";
 
@@ -321,19 +285,17 @@ public class MedecinDAO {
     public List<PatientAvecStat> listerPatientsAvecStatistiques(String idMedecin) {
         List<PatientAvecStat> liste = new ArrayList<>();
 
-        if (idMedecin == null || idMedecin.isEmpty()) {
-            return liste;
-        }
+        if (idMedecin == null || idMedecin.isEmpty()) return liste;
 
         System.out.println("[MedecinDAO] Recherche patients pour médecin: " + idMedecin);
 
-        String sql = "SELECT p.idpat, p.nom_pat, p.email, p.datenais, " +
+        String sql = "SELECT p.idpat, p.nom_pat, p.email, p.telephone, p.datenais, " +
                 "COUNT(r.idrdv) as nb_rdv, " +
                 "MAX(r.date_rdv) as dernier_rdv " +
                 "FROM patient p " +
                 "INNER JOIN rdv r ON p.idpat = r.idpat " +
                 "WHERE r.idmed::text = ? " +
-                "GROUP BY p.idpat, p.nom_pat, p.email, p.datenais " +
+                "GROUP BY p.idpat, p.nom_pat, p.email, p.telephone, p.datenais " +
                 "ORDER BY dernier_rdv DESC";
 
         try (Connection conn = DBConnection.getConnection();
@@ -347,6 +309,7 @@ public class MedecinDAO {
                     p.setIdpat(rs.getString("idpat"));
                     p.setNomPat(rs.getString("nom_pat"));
                     p.setEmail(rs.getString("email"));
+                    p.setTelephone(rs.getString("telephone"));
                     p.setDatenais(rs.getString("datenais"));
                     p.setNbRendezVous(rs.getInt("nb_rdv"));
 
@@ -391,14 +354,13 @@ public class MedecinDAO {
             return false;
         }
 
-        // Vérifier si l'email existe déjà chez un autre médecin ou chez un patient
         if (emailExistePourAutreMedecin(medecin.getEmail(), medecin.getIdmed())) {
             System.err.println("[MedecinDAO] Impossible de modifier: l'email " + medecin.getEmail() + " est déjà utilisé par un autre compte");
             return false;
         }
 
         String sql = "UPDATE medecin SET nommed = ?, specialite = ?, taux_horaire = ?, " +
-                "lieu = ?, email = ? WHERE idmed::text = ?";
+                "lieu = ?, email = ?, telephone = ? WHERE idmed::text = ?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -408,7 +370,8 @@ public class MedecinDAO {
             ps.setInt(3, medecin.getTauxHoraire());
             ps.setString(4, medecin.getLieu());
             ps.setString(5, medecin.getEmail());
-            ps.setString(6, medecin.getIdmed());
+            ps.setString(6, medecin.getTelephone());
+            ps.setString(7, medecin.getIdmed());
 
             return ps.executeUpdate() == 1;
 
@@ -421,9 +384,7 @@ public class MedecinDAO {
     // ── DELETE ───────────────────────────────────────────────────────────────
 
     public boolean supprimer(String idmed) {
-        if (idmed == null || idmed.isEmpty()) {
-            return false;
-        }
+        if (idmed == null || idmed.isEmpty()) return false;
 
         String sql = "DELETE FROM medecin WHERE idmed::text = ?";
 
@@ -452,6 +413,7 @@ public class MedecinDAO {
         m.setTauxHoraire(rs.getInt("taux_horaire"));
         m.setLieu(rs.getString("lieu"));
         m.setEmail(rs.getString("email"));
+        m.setTelephone(rs.getString("telephone"));
         return m;
     }
 
@@ -461,6 +423,7 @@ public class MedecinDAO {
         private String idpat;
         private String nomPat;
         private String email;
+        private String telephone;
         private String datenais;
         private int nbRendezVous;
         private String dernierRdv;
@@ -471,6 +434,8 @@ public class MedecinDAO {
         public void setNomPat(String nomPat) { this.nomPat = nomPat; }
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
+        public String getTelephone() { return telephone; }
+        public void setTelephone(String telephone) { this.telephone = telephone; }
         public String getDatenais() { return datenais; }
         public void setDatenais(String datenais) { this.datenais = datenais; }
         public int getNbRendezVous() { return nbRendezVous; }
@@ -478,5 +443,4 @@ public class MedecinDAO {
         public String getDernierRdv() { return dernierRdv; }
         public void setDernierRdv(String dernierRdv) { this.dernierRdv = dernierRdv; }
     }
-
 }
