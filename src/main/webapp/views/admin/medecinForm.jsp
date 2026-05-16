@@ -14,6 +14,20 @@
         <c:if test="${not empty erreur}">
             <div class="alert alert-danger">${erreur}</div>
         </c:if>
+        
+        <c:if test="${not empty sessionScope.succesPhoto}">
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> ${sessionScope.succesPhoto}
+            </div>
+            <% session.removeAttribute("succesPhoto"); %>
+        </c:if>
+        
+        <c:if test="${not empty sessionScope.erreurPhoto}">
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> ${sessionScope.erreurPhoto}
+            </div>
+            <% session.removeAttribute("erreurPhoto"); %>
+        </c:if>
 
         <!-- SECTION PHOTO DE PROFIL (uniquement pour modification) -->
         <c:if test="${not empty medecin}">
@@ -34,13 +48,16 @@
                 </div>
                 <div>
                     <form action="${pageContext.request.contextPath}/upload-photo" method="post" enctype="multipart/form-data" style="display: inline;">
-                        <input type="file" name="photo" accept="image/jpeg,image/png,image/gif" style="display: none;" id="photoInput" onchange="this.form.submit()">
-                        <button type="button" class="btn btn-primary" onclick="document.getElementById('photoInput').click();" style="background: #1a73e8;">
+                        <input type="hidden" name="idmed" value="${medecin.idmed}">
+                        <input type="file" name="photo" accept="image/jpeg,image/png,image/gif" style="display: none;" id="photoInputAdmin" onchange="this.form.submit()">
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('photoInputAdmin').click();" style="background: #1a73e8;">
                             <i class="fas fa-upload"></i> Changer la photo
                         </button>
                     </form>
                     <c:if test="${not empty medecin.photoProfile}">
-                        <a href="${pageContext.request.contextPath}/supprimer-photo" class="btn btn-danger" style="margin-left: 10px;" onclick="return confirm('Supprimer la photo de profil de ce médecin ?')">
+                        <a href="${pageContext.request.contextPath}/supprimer-photo?idmed=${medecin.idmed}" 
+                           class="btn btn-danger" style="margin-left: 10px;" 
+                           onclick="return confirm('Supprimer la photo de profil de ce médecin ?')">
                             <i class="fas fa-trash-alt"></i> Supprimer
                         </a>
                     </c:if>
@@ -88,6 +105,7 @@
                 <div id="telephoneStatus" style="font-size:13px; margin-top:8px; padding:8px; border-radius:6px; display:none;"></div>
             </div>
 
+            <!-- ========== CHAMPS PROFIL MÉDECIN DÉTAILLÉ ========== -->
             <div class="form-group">
                 <label>👨‍⚕️ Biographie / Présentation</label>
                 <textarea name="bio" id="bio" rows="4" 
@@ -111,6 +129,7 @@
                           placeholder="Ex: 10 ans d'expérience en cardiologie&#10;Chef de service à l'hôpital HJRA (2015-2020)">${medecin.experience}</textarea>
                 <small style="color:#666; font-size:11px;">Décrivez son parcours et ses expériences.</small>
             </div>
+            <!-- ========== FIN CHAMPS PROFIL DÉTAILLÉ ========== -->
 
             <c:if test="${empty medecin}">
                 <div class="form-group">

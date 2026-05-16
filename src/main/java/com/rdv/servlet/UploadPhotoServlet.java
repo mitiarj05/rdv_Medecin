@@ -40,18 +40,38 @@ public class UploadPhotoServlet extends HttpServlet {
         }
 
         String role = (String) session.getAttribute("role");
-        String idUtilisateur = (String) session.getAttribute("idUtilisateur");
+        String idMedecin = req.getParameter("idmed");
         
-        // Seul un médecin peut uploader sa photo
-        if (!"medecin".equals(role)) {
-            resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
+        // CORRECTION : Admin peut uploader pour n'importe quel médecin
+        // Sinon, le médecin ne peut uploader que pour lui-même
+        if ("admin".equals(role)) {
+            // Admin : utiliser l'ID passé en paramètre
+            if (idMedecin == null || idMedecin.isEmpty()) {
+                session.setAttribute("erreurPhoto", "ID du médecin manquant.");
+                resp.sendRedirect(req.getContextPath() + "/admin?action=editMedecin&id=" + idMedecin);
+                return;
+            }
+        } else if ("medecin".equals(role)) {
+            // Médecin : utiliser son propre ID
+            idMedecin = (String) session.getAttribute("idUtilisateur");
+            if (idMedecin == null) {
+                resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
+                return;
+            }
+        } else {
+            // Autre rôle non autorisé
+            resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
             return;
         }
 
         Part filePart = req.getPart("photo");
         if (filePart == null || filePart.getSize() == 0) {
             session.setAttribute("erreurPhoto", "Veuillez sélectionner une photo.");
-            resp.sendRedirect(req.getContextPath() + "/medecin?action=edit&id=" + idUtilisateur);
+            if ("admin".equals(role)) {
+                resp.sendRedirect(req.getContextPath() + "/admin?action=editMedecin&id=" + idMedecin);
+            } else {
+                resp.sendRedirect(req.getContextPath() + "/medecin?action=edit&id=" + idMedecin);
+            }
             return;
         }
 
@@ -59,12 +79,14 @@ public class UploadPhotoServlet extends HttpServlet {
         String contentType = filePart.getContentType();
         if (!contentType.startsWith("image/")) {
             session.setAttribute("erreurPhoto", "Le fichier doit être une image (JPG, PNG, GIF).");
-            resp.sendRedirect(req.getContextPath() + "/medecin?action=edit&id=" + idUtilisateur);
+            if ("admin".equals(role)) {
+                resp.sendRedirect(req.getContextPath() + "/admin?action=editMedecin&id=" + idMedecin);
+            } else {
+                resp.sendRedirect(req.getContextPath() + "/medecin?action=edit&id=" + idMedecin);
+            }
             return;
         }
 
-        // Vérifier la taille (max 5MB déjà défini dans @MultipartConfig)
-        
         // Générer un nom de fichier unique
         String extension = "";
         String fileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
@@ -89,10 +111,14 @@ public class UploadPhotoServlet extends HttpServlet {
         String relativePath = req.getContextPath() + "/uploads/medecins/" + uniqueFileName;
         
         // Mettre à jour la base de données
-        Medecin medecin = medecinService.trouverParId(idUtilisateur);
+        Medecin medecin = medecinService.trouverParId(idMedecin);
         if (medecin == null) {
             session.setAttribute("erreurPhoto", "Médecin non trouvé.");
-            resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
+            if ("admin".equals(role)) {
+                resp.sendRedirect(req.getContextPath() + "/admin?action=medecins");
+            } else {
+                resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
+            }
             return;
         }
         
@@ -126,13 +152,20 @@ public class UploadPhotoServlet extends HttpServlet {
         } else {
             session.setAttribute("succesPhoto", "Photo de profil mise à jour avec succès !");
             
-            // Mettre à jour l'objet en session
-            Medecin medecinMisAJour = medecinService.trouverParId(idUtilisateur);
-            if (medecinMisAJour != null) {
-                session.setAttribute("utilisateur", medecinMisAJour);
+            // Mettre à jour l'objet en session si c'est le médecin lui-même
+            if ("medecin".equals(role)) {
+                Medecin medecinMisAJour = medecinService.trouverParId(idMedecin);
+                if (medecinMisAJour != null) {
+                    session.setAttribute("utilisateur", medecinMisAJour);
+                }
             }
         }
         
-        resp.sendRedirect(req.getContextPath() + "/medecin?action=edit&id=" + idUtilisateur);
+        // Redirection selon le rôle
+        if ("admin".equals(role)) {
+            resp.sendRedirect(req.getContextPath() + "/admin?action=editMedecin&id=" + idMedecin);
+        } else {
+            resp.sendRedirect(req.getContextPath() + "/medecin?action=edit&id=" + idMedecin);
+        }
     }
 }

@@ -29,18 +29,34 @@ public class SupprimerPhotoServlet extends HttpServlet {
         }
 
         String role = (String) session.getAttribute("role");
-        String idUtilisateur = (String) session.getAttribute("idUtilisateur");
+        String idMedecin = req.getParameter("idmed");
         
-        // Seul un médecin peut supprimer sa photo
-        if (!"medecin".equals(role)) {
-            resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
+        // CORRECTION : Admin peut supprimer pour n'importe quel médecin
+        if ("admin".equals(role)) {
+            if (idMedecin == null || idMedecin.isEmpty()) {
+                session.setAttribute("erreurPhoto", "ID du médecin manquant.");
+                resp.sendRedirect(req.getContextPath() + "/admin?action=medecins");
+                return;
+            }
+        } else if ("medecin".equals(role)) {
+            idMedecin = (String) session.getAttribute("idUtilisateur");
+            if (idMedecin == null) {
+                resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
+                return;
+            }
+        } else {
+            resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
             return;
         }
 
-        Medecin medecin = medecinService.trouverParId(idUtilisateur);
+        Medecin medecin = medecinService.trouverParId(idMedecin);
         if (medecin == null) {
             session.setAttribute("erreurPhoto", "Médecin non trouvé.");
-            resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
+            if ("admin".equals(role)) {
+                resp.sendRedirect(req.getContextPath() + "/admin?action=medecins");
+            } else {
+                resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
+            }
             return;
         }
         
@@ -75,13 +91,20 @@ public class SupprimerPhotoServlet extends HttpServlet {
         } else {
             session.setAttribute("succesPhoto", "Photo de profil supprimée avec succès !");
             
-            // Mettre à jour l'objet en session
-            Medecin medecinMisAJour = medecinService.trouverParId(idUtilisateur);
-            if (medecinMisAJour != null) {
-                session.setAttribute("utilisateur", medecinMisAJour);
+            // Mettre à jour l'objet en session si c'est le médecin lui-même
+            if ("medecin".equals(role)) {
+                Medecin medecinMisAJour = medecinService.trouverParId(idMedecin);
+                if (medecinMisAJour != null) {
+                    session.setAttribute("utilisateur", medecinMisAJour);
+                }
             }
         }
         
-        resp.sendRedirect(req.getContextPath() + "/medecin?action=edit&id=" + idUtilisateur);
+        // Redirection selon le rôle
+        if ("admin".equals(role)) {
+            resp.sendRedirect(req.getContextPath() + "/admin?action=editMedecin&id=" + idMedecin);
+        } else {
+            resp.sendRedirect(req.getContextPath() + "/medecin?action=edit&id=" + idMedecin);
+        }
     }
 }
