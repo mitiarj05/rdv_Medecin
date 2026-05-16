@@ -131,15 +131,16 @@ public class PatientServlet extends HttpServlet {
             String nom = req.getParameter("nom_pat");
             String datenais = req.getParameter("datenais");
             String email = req.getParameter("email");
+            String telephone = req.getParameter("telephone"); // NOUVEAU
             String password = req.getParameter("password");
 
             HttpSession session = req.getSession(false);
             String role = (session != null) ? (String) session.getAttribute("role") : null;
 
             if (id != null && !id.trim().isEmpty()) {
-                // MODIFICATION d'un patient existant
+                // MODIFICATION d'un patient existant - avec téléphone
                 System.out.println("[PatientServlet] Modification patient ID: " + id);
-                String erreur = patientService.modifier(id, nom, datenais, email);
+                String erreur = patientService.modifier(id, nom, datenais, email, telephone);
 
                 if (erreur != null) {
                     req.setAttribute("erreur", erreur);
@@ -165,9 +166,9 @@ public class PatientServlet extends HttpServlet {
                 return;
                 
             } else {
-                // CRÉATION d'un nouveau patient
+                // CRÉATION d'un nouveau patient - avec téléphone
                 System.out.println("[PatientServlet] Création nouveau patient");
-                String erreur = patientService.inscrire(nom, datenais, email, password);
+                String erreur = patientService.inscrire(nom, datenais, email, telephone, password);
                 
                 if (erreur != null) {
                     req.setAttribute("erreur", erreur);

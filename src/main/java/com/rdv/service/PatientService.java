@@ -27,7 +27,7 @@ public class PatientService {
      * Retourne null si succès, ou un message d'erreur.
      */
     public String inscrire(String nom, String dateNaisStr,
-                           String email, String motDePasse) {
+                           String email, String telephone, String motDePasse) { // MODIFIÉ
 
         // Validation
         if (nom == null || nom.trim().isEmpty())
@@ -46,6 +46,7 @@ public class PatientService {
         patient.setNomPat(nom.trim());
         patient.setDatenais(LocalDate.parse(dateNaisStr));
         patient.setEmail(email.trim().toLowerCase());
+        patient.setTelephone(telephone); // NOUVEAU
         patient.setMotDePasse(PasswordUtil.hasher(motDePasse)); // hashage bcrypt
 
         boolean ok = patientDAO.inserer(patient);
@@ -95,7 +96,7 @@ public class PatientService {
     /**
      * Modifie un patient et retourne le patient mis à jour
      */
-    public Patient modifierEtRetourner(String idpat, String nom, String dateNaisStr, String email) {
+    public Patient modifierEtRetourner(String idpat, String nom, String dateNaisStr, String email, String telephone) {
         if (nom == null || nom.trim().isEmpty()) return null;
         if (email == null || !email.contains("@")) return null;
 
@@ -104,6 +105,7 @@ public class PatientService {
         patient.setNomPat(nom.trim());
         patient.setDatenais(LocalDate.parse(dateNaisStr));
         patient.setEmail(email.trim().toLowerCase());
+        patient.setTelephone(telephone); // NOUVEAU
 
         boolean ok = patientDAO.modifier(patient);
         if (!ok) return null;
@@ -115,7 +117,7 @@ public class PatientService {
     /**
      * Modifie un patient et retourne null si succès, un message d'erreur sinon
      */
-    public String modifier(String idpat, String nom, String dateNaisStr, String email) {
+    public String modifier(String idpat, String nom, String dateNaisStr, String email, String telephone) { // MODIFIÉ
         // Validation
         if (idpat == null || idpat.trim().isEmpty()) {
             return "ID patient manquant.";
@@ -152,9 +154,10 @@ public class PatientService {
         patient.setNomPat(nom.trim());
         patient.setDatenais(LocalDate.parse(dateNaisStr));
         patient.setEmail(email.trim().toLowerCase());
+        patient.setTelephone(telephone); // NOUVEAU
 
         System.out.println("[PatientService] Modification patient - ID: " + idpat +
-                ", Nom: " + nom + ", Email: " + email);
+                ", Nom: " + nom + ", Email: " + email + ", Telephone: " + telephone);
 
         boolean ok = patientDAO.modifier(patient);
 

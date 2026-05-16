@@ -142,6 +142,7 @@ public class AuthServlet extends HttpServlet {
             throws IOException, ServletException {
 
         String role = req.getParameter("role");
+        String telephone = req.getParameter("telephone"); // NOUVEAU
 
         if ("medecin".equals(role)) {
             String erreur = medecinService.inscrire(
@@ -150,6 +151,7 @@ public class AuthServlet extends HttpServlet {
                     req.getParameter("taux_horaire"),
                     req.getParameter("lieu"),
                     req.getParameter("email"),
+                    telephone,  // NOUVEAU
                     req.getParameter("password")
             );
             if (erreur != null) {
@@ -165,6 +167,7 @@ public class AuthServlet extends HttpServlet {
                     req.getParameter("nom_pat"),
                     req.getParameter("datenais"),
                     req.getParameter("email"),
+                    telephone,  // NOUVEAU
                     req.getParameter("password")
             );
             if (erreur != null) {

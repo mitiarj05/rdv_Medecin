@@ -18,7 +18,7 @@ public class MedecinService {
     // ── Inscription ───────────────────────────────────────────────────────────
 
     public String inscrire(String nom, String specialite, String tauxStr,
-                           String lieu, String email, String motDePasse) {
+                           String lieu, String email, String telephone, String motDePasse) { // MODIFIÉ
 
         if (nom == null || nom.trim().isEmpty())
             return "Le nom est obligatoire.";
@@ -48,6 +48,7 @@ public class MedecinService {
         medecin.setTauxHoraire(taux);
         medecin.setLieu(lieu.trim());
         medecin.setEmail(email.trim().toLowerCase());
+        medecin.setTelephone(telephone); // NOUVEAU
         medecin.setMotDePasse(PasswordUtil.hasher(motDePasse));
 
         boolean ok = medecinDAO.inserer(medecin);
@@ -130,7 +131,7 @@ public class MedecinService {
     // ── MODIFICATION ─────────────────────────────────────────────────────────
 
     public String modifier(String idmed, String nom, String specialite,
-                           String tauxStr, String lieu, String email) {
+                           String tauxStr, String lieu, String email, String telephone) { // MODIFIÉ
         if (nom == null || nom.trim().isEmpty())
             return "Le nom est obligatoire.";
         if (email == null || !email.contains("@"))
@@ -150,6 +151,7 @@ public class MedecinService {
         medecin.setTauxHoraire(taux);
         medecin.setLieu(lieu.trim());
         medecin.setEmail(email.trim().toLowerCase());
+        medecin.setTelephone(telephone); // NOUVEAU
 
         boolean ok = medecinDAO.modifier(medecin);
         return ok ? null : "Erreur lors de la modification.";

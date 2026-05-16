@@ -34,6 +34,15 @@
                 <input type="email" name="email" value="${patient.email}" required>
             </div>
 
+            <!-- NOUVEAU : Champ Téléphone -->
+            <div class="form-group">
+                <label>📱 Numéro de téléphone</label>
+                <input type="tel" name="telephone" id="telephone"
+                       value="${patient.telephone}"
+                       placeholder="Ex: 0330000000 ou +261330000000">
+                <small style="color: #666; font-size: 11px;">Format: 0330000000 ou +261330000000</small>
+            </div>
+
             <c:if test="${empty patient}">
                 <div class="form-group">
                     <label>Mot de passe temporaire</label>
