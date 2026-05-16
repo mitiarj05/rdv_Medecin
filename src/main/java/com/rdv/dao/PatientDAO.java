@@ -21,6 +21,14 @@ public class PatientDAO {
             System.err.println("[PatientDAO] L'email " + patient.getEmail() + " est déjà utilisé");
             return false;
         }
+        
+        // 🔥 NOUVEAU : Vérifier si le téléphone existe déjà
+        if (patient.getTelephone() != null && !patient.getTelephone().isEmpty()) {
+            if (telephoneExiste(patient.getTelephone(), null)) {
+                System.err.println("[PatientDAO] Le téléphone " + patient.getTelephone() + " est déjà utilisé");
+                return false;
+            }
+        }
 
         String sql = "INSERT INTO patient (nom_pat, datenais, email, telephone, mot_de_passe) VALUES (?, ?, ?, ?, ?)";
 
@@ -39,6 +47,57 @@ public class PatientDAO {
             System.err.println("[PatientDAO] Erreur inserer : " + e.getMessage());
             return false;
         }
+    }
+
+    // ── VÉRIFICATION TÉLÉPHONE UNIQUE (NOUVELLE MÉTHODE) ────────────────────────
+    
+    /**
+     * Vérifie si un numéro de téléphone existe déjà chez un patient ou un médecin
+     * @param telephone Le numéro à vérifier
+     * @param idPatient L'ID du patient actuel (null pour création, sinon pour modification)
+     * @return true si le téléphone existe déjà, false sinon
+     */
+    public boolean telephoneExiste(String telephone, String idPatient) {
+        if (telephone == null || telephone.isEmpty()) {
+            return false;
+        }
+        
+        String sqlPatient = "SELECT COUNT(*) FROM patient WHERE telephone = ?";
+        String sqlMedecin = "SELECT COUNT(*) FROM medecin WHERE telephone = ?";
+        
+        if (idPatient != null && !idPatient.isEmpty()) {
+            sqlPatient = "SELECT COUNT(*) FROM patient WHERE telephone = ? AND idpat::text != ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection()) {
+            // Vérifier chez les patients
+            try (PreparedStatement ps = conn.prepareStatement(sqlPatient)) {
+                ps.setString(1, telephone);
+                if (idPatient != null && !idPatient.isEmpty()) {
+                    ps.setString(2, idPatient);
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        System.out.println("[PatientDAO] Téléphone " + telephone + " trouvé chez un patient");
+                        return true;
+                    }
+                }
+            }
+            
+            // Vérifier chez les médecins
+            try (PreparedStatement ps = conn.prepareStatement(sqlMedecin)) {
+                ps.setString(1, telephone);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        System.out.println("[PatientDAO] Téléphone " + telephone + " trouvé chez un médecin");
+                        return true;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[PatientDAO] Erreur telephoneExiste: " + e.getMessage());
+        }
+        return false;
     }
 
     // ── VÉRIFICATION EMAIL ───────────────────────────────────────────────────
@@ -175,6 +234,14 @@ public class PatientDAO {
         if (emailExistePourAutrePatient(patient.getEmail(), patient.getIdpat())) {
             System.err.println("[PatientDAO] Impossible de modifier: l'email " + patient.getEmail() + " est déjà utilisé par un autre compte");
             return false;
+        }
+        
+        // 🔥 NOUVEAU : Vérifier si le téléphone existe déjà chez un autre patient ou médecin
+        if (patient.getTelephone() != null && !patient.getTelephone().isEmpty()) {
+            if (telephoneExiste(patient.getTelephone(), patient.getIdpat())) {
+                System.err.println("[PatientDAO] Impossible de modifier: le téléphone " + patient.getTelephone() + " est déjà utilisé par un autre compte");
+                return false;
+            }
         }
 
         try (Connection conn = DBConnection.getConnection();
