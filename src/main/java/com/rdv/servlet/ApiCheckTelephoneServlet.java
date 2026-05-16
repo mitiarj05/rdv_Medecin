@@ -5,7 +5,7 @@ import java.io.PrintWriter;
 
 import com.rdv.dao.MedecinDAO;
 import com.rdv.dao.PatientDAO;
-import com.rdv.model.Patient;
+import com.rdv.util.PhoneUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -38,31 +38,40 @@ public class ApiCheckTelephoneServlet extends HttpServlet {
         }
 
         // Normaliser le numéro
-        String normalizedPhone = telephone;
-        if (!normalizedPhone.startsWith("+") && normalizedPhone.startsWith("0")) {
-            normalizedPhone = "+261" + normalizedPhone.substring(1);
+        String normalizedPhone = PhoneUtil.normaliserTelephone(telephone);
+        
+        // Si le format est invalide
+        if (normalizedPhone == null) {
+            out.write("{\"exists\": false, \"message\": \"\", \"invalid\": true}");
+            return;
         }
 
         boolean exists = false;
         String message = "";
+        String displayPhone = normalizedPhone;
 
         try {
             if ("patient".equals(type)) {
                 exists = patientDAO.telephoneExiste(normalizedPhone, id);
                 if (exists) {
-                    message = "Ce numéro de téléphone est déjà utilisé par un autre patient ou médecin.";
+                    message = "❌ Ce numéro de téléphone (" + displayPhone + ") est déjà utilisé par un autre patient ou médecin. Veuillez en utiliser un autre.";
+                } else {
+                    message = "✓ Numéro " + displayPhone + " disponible";
                 }
             } else if ("medecin".equals(type)) {
                 exists = medecinDAO.telephoneExiste(normalizedPhone, id);
                 if (exists) {
-                    message = "Ce numéro de téléphone est déjà utilisé par un autre médecin ou patient.";
+                    message = "❌ Ce numéro de téléphone (" + displayPhone + ") est déjà utilisé par un autre médecin ou patient. Veuillez en utiliser un autre.";
+                } else {
+                    message = "✓ Numéro " + displayPhone + " disponible";
                 }
             } else {
-                // Vérification générale sans type spécifique
                 exists = patientDAO.telephoneExiste(normalizedPhone, null) ||
                          medecinDAO.telephoneExiste(normalizedPhone, null);
                 if (exists) {
-                    message = "Ce numéro de téléphone est déjà utilisé par un autre compte.";
+                    message = "❌ Ce numéro de téléphone (" + displayPhone + ") est déjà utilisé par un autre compte. Veuillez en utiliser un autre.";
+                } else {
+                    message = "✓ Numéro " + displayPhone + " disponible";
                 }
             }
         } catch (Exception e) {

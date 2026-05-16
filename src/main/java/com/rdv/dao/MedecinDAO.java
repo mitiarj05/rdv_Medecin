@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import com.rdv.model.Medecin;
 import com.rdv.util.DBConnection;
+import com.rdv.util.PhoneUtil;
 
 public class MedecinDAO {
 
@@ -23,12 +24,19 @@ public class MedecinDAO {
             return false;
         }
         
-        // Vérifier si le téléphone existe déjà
+        // Normaliser et vérifier le téléphone
+        String normalizedPhone = null;
         if (medecin.getTelephone() != null && !medecin.getTelephone().isEmpty()) {
-            if (telephoneExiste(medecin.getTelephone(), null)) {
+            normalizedPhone = PhoneUtil.normaliserTelephone(medecin.getTelephone());
+            if (normalizedPhone == null) {
+                System.err.println("[MedecinDAO] Format de téléphone invalide: " + medecin.getTelephone());
+                return false;
+            }
+            if (telephoneExiste(normalizedPhone, null)) {
                 System.err.println("[MedecinDAO] Le téléphone " + medecin.getTelephone() + " est déjà utilisé");
                 return false;
             }
+            medecin.setTelephone(normalizedPhone);
         }
 
         String sql = "INSERT INTO medecin (nommed, specialite, taux_horaire, lieu, email, telephone, mot_de_passe) " +
@@ -53,16 +61,23 @@ public class MedecinDAO {
         }
     }
 
-    // ── VÉRIFICATION TÉLÉPHONE UNIQUE ────────────────────────────────────────
+    // ── VÉRIFICATION TÉLÉPHONE UNIQUE (avec normalisation) ────────────────────
     
     /**
      * Vérifie si un numéro de téléphone existe déjà chez un médecin ou un patient
+     * Le numéro est normalisé avant vérification
      * @param telephone Le numéro à vérifier
      * @param idMedecin L'ID du médecin actuel (null pour création, sinon pour modification)
      * @return true si le téléphone existe déjà, false sinon
      */
     public boolean telephoneExiste(String telephone, String idMedecin) {
         if (telephone == null || telephone.isEmpty()) {
+            return false;
+        }
+        
+        // Normaliser le numéro avant vérification
+        String normalizedPhone = PhoneUtil.normaliserTelephone(telephone);
+        if (normalizedPhone == null) {
             return false;
         }
         
@@ -76,13 +91,13 @@ public class MedecinDAO {
         try (Connection conn = DBConnection.getConnection()) {
             // Vérifier chez les médecins
             try (PreparedStatement ps = conn.prepareStatement(sqlMedecin)) {
-                ps.setString(1, telephone);
+                ps.setString(1, normalizedPhone);
                 if (idMedecin != null && !idMedecin.isEmpty()) {
                     ps.setString(2, idMedecin);
                 }
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next() && rs.getInt(1) > 0) {
-                        System.out.println("[MedecinDAO] Téléphone " + telephone + " trouvé chez un médecin");
+                        System.out.println("[MedecinDAO] Téléphone " + normalizedPhone + " trouvé chez un médecin");
                         return true;
                     }
                 }
@@ -90,10 +105,10 @@ public class MedecinDAO {
             
             // Vérifier chez les patients
             try (PreparedStatement ps = conn.prepareStatement(sqlPatient)) {
-                ps.setString(1, telephone);
+                ps.setString(1, normalizedPhone);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next() && rs.getInt(1) > 0) {
-                        System.out.println("[MedecinDAO] Téléphone " + telephone + " trouvé chez un patient");
+                        System.out.println("[MedecinDAO] Téléphone " + normalizedPhone + " trouvé chez un patient");
                         return true;
                     }
                 }
@@ -412,12 +427,19 @@ public class MedecinDAO {
             return false;
         }
         
-        // Vérifier si le téléphone existe déjà chez un autre médecin ou patient
+        // Normaliser et vérifier le téléphone
+        String normalizedPhone = null;
         if (medecin.getTelephone() != null && !medecin.getTelephone().isEmpty()) {
-            if (telephoneExiste(medecin.getTelephone(), medecin.getIdmed())) {
+            normalizedPhone = PhoneUtil.normaliserTelephone(medecin.getTelephone());
+            if (normalizedPhone == null) {
+                System.err.println("[MedecinDAO] Format de téléphone invalide: " + medecin.getTelephone());
+                return false;
+            }
+            if (telephoneExiste(normalizedPhone, medecin.getIdmed())) {
                 System.err.println("[MedecinDAO] Impossible de modifier: le téléphone " + medecin.getTelephone() + " est déjà utilisé par un autre compte");
                 return false;
             }
+            medecin.setTelephone(normalizedPhone);
         }
 
         String sql = "UPDATE medecin SET nommed = ?, specialite = ?, taux_horaire = ?, " +
