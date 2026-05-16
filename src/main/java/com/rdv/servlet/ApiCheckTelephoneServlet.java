@@ -32,54 +32,39 @@ public class ApiCheckTelephoneServlet extends HttpServlet {
 
         PrintWriter out = resp.getWriter();
 
-        if (telephone == null || telephone.isEmpty()) {
-            out.write("{\"exists\": false, \"message\": \"\"}");
+        if (telephone == null || telephone.trim().isEmpty()) {
+            out.write("{\"exists\": false, \"message\": \"\", \"valid\": true}");
             return;
         }
 
-        // Normaliser le numéro
         String normalizedPhone = PhoneUtil.normaliserTelephone(telephone);
         
-        // Si le format est invalide
         if (normalizedPhone == null) {
-            out.write("{\"exists\": false, \"message\": \"\", \"invalid\": true}");
+            out.write("{\"exists\": false, \"message\": \"Format invalide. Utilisez 032... ou +26132...\", \"valid\": false}");
             return;
         }
 
         boolean exists = false;
-        String message = "";
-        String displayPhone = normalizedPhone;
 
         try {
             if ("patient".equals(type)) {
                 exists = patientDAO.telephoneExiste(normalizedPhone, id);
-                if (exists) {
-                    message = "❌ Ce numéro de téléphone (" + displayPhone + ") est déjà utilisé par un autre patient ou médecin. Veuillez en utiliser un autre.";
-                } else {
-                    message = "✓ Numéro " + displayPhone + " disponible";
-                }
             } else if ("medecin".equals(type)) {
                 exists = medecinDAO.telephoneExiste(normalizedPhone, id);
-                if (exists) {
-                    message = "❌ Ce numéro de téléphone (" + displayPhone + ") est déjà utilisé par un autre médecin ou patient. Veuillez en utiliser un autre.";
-                } else {
-                    message = "✓ Numéro " + displayPhone + " disponible";
-                }
             } else {
                 exists = patientDAO.telephoneExiste(normalizedPhone, null) ||
                          medecinDAO.telephoneExiste(normalizedPhone, null);
-                if (exists) {
-                    message = "❌ Ce numéro de téléphone (" + displayPhone + ") est déjà utilisé par un autre compte. Veuillez en utiliser un autre.";
-                } else {
-                    message = "✓ Numéro " + displayPhone + " disponible";
-                }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            out.write("{\"exists\": false, \"message\": \"Erreur technique\"}");
+            out.write("{\"exists\": false, \"message\": \"Erreur technique\", \"valid\": false}");
             return;
         }
 
-        out.write("{\"exists\": " + exists + ", \"message\": \"" + message + "\"}");
+        if (exists) {
+            out.write("{\"exists\": true, \"message\": \"❌ Ce numéro est déjà utilisé par un autre compte. Veuillez en utiliser un autre.\", \"valid\": false}");
+        } else {
+            out.write("{\"exists\": false, \"message\": \"✓ Numéro disponible\", \"valid\": true}");
+        }
     }
 }

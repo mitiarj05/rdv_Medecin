@@ -24,7 +24,6 @@
             padding: 20px;
         }
 
-        /* Container principal en deux colonnes */
         .register-wrapper {
             max-width: 1100px;
             width: 100%;
@@ -42,7 +41,6 @@
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* Colonne gauche - Image médicale */
         .register-image {
             flex: 1.2;
             background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
@@ -124,7 +122,6 @@
             font-size: 16px;
         }
 
-        /* Colonne droite - Formulaire */
         .register-form {
             flex: 0.9;
             padding: 40px;
@@ -163,7 +160,6 @@
             color: #666;
         }
 
-        /* Steps */
         .steps-row {
             display: flex;
             align-items: center;
@@ -218,7 +214,6 @@
             background: #34a853;
         }
 
-        /* Alertes */
         .alert {
             padding: 10px 14px;
             border-radius: 8px;
@@ -236,7 +231,6 @@
             border-left: 3px solid #34a853;
         }
 
-        /* Steps containers */
         .reg-step {
             display: none;
         }
@@ -244,7 +238,6 @@
             display: block;
         }
 
-        /* Role cards */
         .role-cards-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -312,7 +305,6 @@
             margin-bottom: 16px;
         }
 
-        /* Sections */
         .section-title {
             font-size: 11px;
             font-weight: 700;
@@ -334,7 +326,6 @@
             background: #e8f0fe;
         }
 
-        /* Form groups */
         .form-group {
             margin-bottom: 14px;
         }
@@ -427,7 +418,6 @@
             color: #ea4335;
         }
 
-        /* Buttons */
         .btn-primary {
             background: #1a73e8;
             color: white;
@@ -476,7 +466,6 @@
             flex: 2;
         }
 
-        /* Footer */
         .footer {
             text-align: center;
             margin-top: 20px;
@@ -492,7 +481,6 @@
             text-decoration: underline;
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .register-image {
                 display: none;
@@ -599,10 +587,10 @@
                     <label for="pat-telephone">📱 Numéro de téléphone</label>
                     <div class="pw-wrap">
                         <input type="tel" name="telephone" id="pat-telephone"
-                                placeholder="Ex: 0330000000 ou +261330000000"
-                                pattern="[0-9+]{9,15}">
+                               placeholder="Ex: 0328725411 ou +261328725411"
+                               pattern="[0-9+]{9,15}">
                     </div>
-                <div class="pw-hint" style="margin-top: 2px;">Format:+261330000000 (optionnel)</div>
+                    <div class="pw-hint" style="margin-top: 2px;">Format: 0328725411 ou +261328725411 (optionnel)</div>
                 </div>
                 <div class="form-group">
                     <label for="pat-email">Adresse email</label>
@@ -663,11 +651,11 @@
                 <div class="form-group">
                     <label for="med-telephone">📱 Numéro de téléphone</label>
                     <div class="pw-wrap">
-                            <input type="tel" name="telephone" id="med-telephone"
-                                    placeholder="Ex: 0330000000 ou +261330000000"
-                                    pattern="[0-9+]{9,15}">
-                </div>
-                <div class="pw-hint" style="margin-top: 2px;">Format: 0330000000 ou +261330000000 (optionnel)</div>
+                        <input type="tel" name="telephone" id="med-telephone"
+                               placeholder="Ex: 0328725411 ou +261328725411"
+                               pattern="[0-9+]{9,15}">
+                    </div>
+                    <div class="pw-hint" style="margin-top: 2px;">Format: 0328725411 ou +261328725411 (optionnel)</div>
                 </div>
                 <div class="form-group">
                     <label for="med-email">Adresse email</label>
@@ -716,7 +704,6 @@
         document.getElementById('card-medecin').classList.toggle('selected', role === 'medecin');
     }
 
-    // Désactive tous les champs du rôle inactif
     function prepareFormBeforeSubmit(role) {
         var patEmail = document.getElementById('pat-email');
         var medEmail = document.getElementById('med-email');
@@ -743,7 +730,6 @@
         return true;
     }
 
-    // Réactive tous les champs lors du changement d'étape
     function enableAllFields() {
         var fields = ['pat-email', 'med-email', 'pat-pw', 'med-pw', 'pat-confirm', 'med-confirm'];
         fields.forEach(function(id) {
@@ -879,7 +865,6 @@
         var pw = pwField.value;
         var confirm = confirmField.value;
 
-        // Validation spécifique au rôle
         if (role === 'patient') {
             var nomPat = document.getElementById('pat-nom');
             if (!nomPat || !nomPat.value.trim()) {

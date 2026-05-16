@@ -18,7 +18,7 @@
 
         <form action="${pageContext.request.contextPath}/patient" method="post" id="patientForm">
             <input type="hidden" name="action" value="enregistrer">
-            <input type="hidden" name="idpat" value="${patient.idpat}">
+            <input type="hidden" name="idpat" id="idpat" value="${patient.idpat}">
 
             <div class="form-group">
                 <label>Nom complet</label>
@@ -40,18 +40,16 @@
                        placeholder="votre@email.com" required>
             </div>
 
-            <!-- 🔥 CHAMP TÉLÉPHONE AVEC VÉRIFICATION EN TEMPS RÉEL -->
+            <!-- CHAMP TÉLÉPHONE AVEC VÉRIFICATION EN TEMPS RÉEL -->
             <div class="form-group">
                 <label>📱 Numéro de téléphone</label>
                 <input type="tel" name="telephone" id="telephone"
                        value="${patient.telephone}"
-                       placeholder="Ex: 0330000000 ou +261330000000"
-                       pattern="[0-9+]{9,15}"
-                       title="Format: 0330000000 ou +261330000000"
-                       autocomplete="off">
-                <small id="telephoneHelp" style="color: #666; font-size: 11px;">Format accepté: 0330000000 ou +261330000000</small>
-                <div id="telephoneError" style="color: #dc3545; font-size: 12px; margin-top: 5px; display: none;"></div>
-                <div id="telephoneSuccess" style="color: #28a745; font-size: 12px; margin-top: 5px; display: none;"></div>
+                       placeholder="Ex: 0328725411 ou +261328725411"
+                       autocomplete="off"
+                       style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                <small id="telephoneHelp" style="color: #666; font-size: 11px;">Format: 0328725411 ou +261328725411</small>
+                <div id="telephoneStatus" style="font-size: 13px; margin-top: 8px; padding: 8px; border-radius: 6px; display: none;"></div>
             </div>
 
             <c:if test="${empty patient}">
@@ -95,12 +93,9 @@
                    class="btn btn-danger"
                    style="display: inline-block; background-color:#dc3545; color:white; padding:10px 20px; 
                           text-decoration:none; border-radius:5px; font-weight:bold;"
-                   onclick="return confirm('Êtes-vous ABSOLUMENT sûr de vouloir supprimer votre compte ?\n\n⚠️ Cette action est IRRÉVERSIBLE !\n\nToutes vos données (rendez-vous, etc.) seront supprimées définitivement.');">
+                   onclick="return confirm('Êtes-vous ABSOLUMENT sûr de vouloir supprimer votre compte ?\n\n⚠️ Cette action est IRRÉVERSIBLE !');">
                     🗑️ Supprimer mon compte définitivement
                 </a>
-                <p style="font-size:12px; color:#666; margin-top:10px;">
-                    ⚠️ Attention : Cette action supprimera votre compte ainsi que tous vos rendez-vous associés.
-                </p>
             </div>
         </c:if>
         
@@ -108,88 +103,71 @@
 </div>
 
 <script>
-// 🔥 VÉRIFICATION EN TEMPS RÉEL DU NUMÉRO DE TÉLÉPHONE
+// VÉRIFICATION EN TEMPS RÉEL DU NUMÉRO DE TÉLÉPHONE
 const telephoneInput = document.getElementById('telephone');
-const telephoneError = document.getElementById('telephoneError');
-const telephoneSuccess = document.getElementById('telephoneSuccess');
-const telephoneHelp = document.getElementById('telephoneHelp');
+const telephoneStatus = document.getElementById('telephoneStatus');
 const submitBtn = document.getElementById('submitBtn');
 let checkTimeout = null;
 
 function verifierTelephone() {
     let telephone = telephoneInput.value.trim();
     
-    // Ignorer si vide
+    // Si le champ est vide
     if (telephone === '') {
-        telephoneError.style.display = 'none';
-        telephoneSuccess.style.display = 'none';
-        telephoneHelp.style.display = 'block';
-        telephoneHelp.style.color = '#666';
+        telephoneStatus.style.display = 'none';
         submitBtn.disabled = false;
         return;
     }
     
-    // Validation du format
-    const phoneRegex = /^[0-9+]{9,15}$/;
-    if (!phoneRegex.test(telephone) || telephone.length < 9) {
-        telephoneError.innerHTML = '⚠️ Format invalide. Utilisez 0330000000 ou +261330000000';
-        telephoneError.style.display = 'block';
-        telephoneSuccess.style.display = 'none';
-        telephoneHelp.style.display = 'none';
-        submitBtn.disabled = true;
-        return;
-    }
+    // Afficher "vérification en cours"
+    telephoneStatus.style.display = 'block';
+    telephoneStatus.style.backgroundColor = '#e3f2fd';
+    telephoneStatus.style.color = '#0c5460';
+    telephoneStatus.style.border = '1px solid #bee5eb';
+    telephoneStatus.innerHTML = '⏳ Vérification en cours...';
+    submitBtn.disabled = true;
     
-    // Normaliser le numéro pour la vérification
-    let normalizedPhone = telephone;
-    if (!normalizedPhone.startsWith('+') && normalizedPhone.startsWith('0')) {
-        normalizedPhone = '+261' + normalizedPhone.substring(1);
-    }
+    const patientId = document.getElementById('idpat')?.value || '';
     
-    // Afficher chargement
-    telephoneError.innerHTML = '⏳ Vérification en cours...';
-    telephoneError.style.color = '#17a2b8';
-    telephoneError.style.display = 'block';
-    telephoneSuccess.style.display = 'none';
-    
-    // Récupérer l'ID du patient (pour modification)
-    const patientId = document.querySelector('input[name="idpat"]')?.value || '';
-    
-    // Appel AJAX pour vérifier si le numéro existe déjà
     fetch('${pageContext.request.contextPath}/api/check-telephone', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: 'telephone=' + encodeURIComponent(normalizedPhone) + '&type=patient&id=' + encodeURIComponent(patientId)
+        body: 'telephone=' + encodeURIComponent(telephone) + '&type=patient&id=' + encodeURIComponent(patientId)
     })
     .then(response => response.json())
     .then(data => {
         if (data.exists) {
-            telephoneError.innerHTML = '❌ ' + data.message;
-            telephoneError.style.color = '#dc3545';
-            telephoneError.style.display = 'block';
-            telephoneSuccess.style.display = 'none';
-            telephoneHelp.style.display = 'none';
+            // Numéro déjà utilisé - ERREUR ROUGE
+            telephoneStatus.style.backgroundColor = '#f8d7da';
+            telephoneStatus.style.color = '#721c24';
+            telephoneStatus.style.border = '1px solid #f5c6cb';
+            telephoneStatus.innerHTML = data.message;
+            submitBtn.disabled = true;
+        } else if (data.valid === false && !data.exists) {
+            // Format invalide
+            telephoneStatus.style.backgroundColor = '#fff3cd';
+            telephoneStatus.style.color = '#856404';
+            telephoneStatus.style.border = '1px solid #ffeeba';
+            telephoneStatus.innerHTML = data.message;
             submitBtn.disabled = true;
         } else {
-            telephoneError.style.display = 'none';
-            telephoneSuccess.innerHTML = '✓ Numéro disponible';
-            telephoneSuccess.style.display = 'block';
-            telephoneHelp.style.display = 'none';
+            // Numéro disponible - VERT
+            telephoneStatus.style.backgroundColor = '#d4edda';
+            telephoneStatus.style.color = '#155724';
+            telephoneStatus.style.border = '1px solid #c3e6cb';
+            telephoneStatus.innerHTML = data.message;
             submitBtn.disabled = false;
         }
     })
     .catch(error => {
         console.error('Erreur:', error);
-        telephoneError.style.display = 'none';
-        telephoneSuccess.style.display = 'none';
-        telephoneHelp.style.display = 'block';
+        telephoneStatus.style.display = 'none';
         submitBtn.disabled = false;
     });
 }
 
-// Événements de saisie avec délai
 telephoneInput.addEventListener('input', function() {
     if (checkTimeout) clearTimeout(checkTimeout);
     checkTimeout = setTimeout(verifierTelephone, 500);
