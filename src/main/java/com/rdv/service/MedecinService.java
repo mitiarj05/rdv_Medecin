@@ -20,6 +20,7 @@ public class MedecinService {
     public String inscrire(String nom, String specialite, String tauxStr,
                            String lieu, String email, String telephone, 
                            String bio, String diplomes, String experience, String photoProfile,
+                           String adresse, Double latitude, Double longitude,
                            String motDePasse) {
 
         if (nom == null || nom.trim().isEmpty())
@@ -54,11 +55,23 @@ public class MedecinService {
         medecin.setBio(bio != null ? bio.trim() : null);
         medecin.setDiplomes(diplomes != null ? diplomes.trim() : null);
         medecin.setExperience(experience != null ? experience.trim() : null);
-        medecin.setPhotoProfile(photoProfile != null ? photoProfile.trim() : null);
+        medecin.setPhotoProfile(photoProfile);
+        medecin.setAdresse(adresse != null ? adresse.trim() : null);
+        medecin.setLatitude(latitude);
+        medecin.setLongitude(longitude);
         medecin.setMotDePasse(PasswordUtil.hasher(motDePasse));
 
         boolean ok = medecinDAO.inserer(medecin);
         return ok ? null : "Erreur lors de l'inscription.";
+    }
+
+    // Version simplifiée pour l'inscription sans coordonnées
+    public String inscrire(String nom, String specialite, String tauxStr,
+                           String lieu, String email, String telephone, 
+                           String bio, String diplomes, String experience, String photoProfile,
+                           String motDePasse) {
+        return inscrire(nom, specialite, tauxStr, lieu, email, telephone, 
+                        bio, diplomes, experience, photoProfile, null, null, null, motDePasse);
     }
 
     // ── Connexion ─────────────────────────────────────────────────────────────
@@ -113,6 +126,16 @@ public class MedecinService {
         return medecinDAO.top5PlusConsultes();
     }
 
+    // ── NOUVELLES MÉTHODES POUR LA CARTE ──────────────────────────────────────
+
+    public List<Medecin> listerAvecCoordonnees() {
+        return medecinDAO.listerAvecCoordonnees();
+    }
+
+    public List<Medecin> trouverPlusProches(double lat, double lon, int limit) {
+        return medecinDAO.trouverPlusProches(lat, lon, limit);
+    }
+
     // ── GESTION DES PATIENTS DU MÉDECIN ───────────────────────────────────────
 
     public List<MedecinDAO.PatientAvecStat> listerPatientsAvecStats(String idMedecin) {
@@ -134,7 +157,8 @@ public class MedecinService {
 
     public String modifier(String idmed, String nom, String specialite,
                            String tauxStr, String lieu, String email, String telephone,
-                           String bio, String diplomes, String experience, String photoProfile) {
+                           String bio, String diplomes, String experience, String photoProfile,
+                           String adresse, Double latitude, Double longitude) {
         if (nom == null || nom.trim().isEmpty())
             return "Le nom est obligatoire.";
         if (email == null || !email.contains("@"))
@@ -158,10 +182,25 @@ public class MedecinService {
         medecin.setBio(bio != null ? bio.trim() : null);
         medecin.setDiplomes(diplomes != null ? diplomes.trim() : null);
         medecin.setExperience(experience != null ? experience.trim() : null);
-        medecin.setPhotoProfile(photoProfile != null ? photoProfile.trim() : null);
+        medecin.setPhotoProfile(photoProfile);
+        medecin.setAdresse(adresse != null ? adresse.trim() : null);
+        medecin.setLatitude(latitude);
+        medecin.setLongitude(longitude);
 
         boolean ok = medecinDAO.modifier(medecin);
         return ok ? null : "Erreur lors de la modification.";
+    }
+
+    // Version simplifiée pour la modification sans coordonnées (garder les existantes)
+    public String modifier(String idmed, String nom, String specialite,
+                           String tauxStr, String lieu, String email, String telephone,
+                           String bio, String diplomes, String experience, String photoProfile) {
+        Medecin existing = trouverParId(idmed);
+        Double lat = existing != null ? existing.getLatitude() : null;
+        Double lon = existing != null ? existing.getLongitude() : null;
+        String adresse = existing != null ? existing.getAdresse() : null;
+        return modifier(idmed, nom, specialite, tauxStr, lieu, email, telephone,
+                        bio, diplomes, experience, photoProfile, adresse, lat, lon);
     }
 
     public boolean supprimer(String idmed) {

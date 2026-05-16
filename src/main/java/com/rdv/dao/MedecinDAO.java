@@ -39,8 +39,8 @@ public class MedecinDAO {
             medecin.setTelephone(normalizedPhone);
         }
 
-        String sql = "INSERT INTO medecin (nommed, specialite, taux_horaire, lieu, email, telephone, mot_de_passe, bio, diplomes, experience, photo_profile) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO medecin (nommed, specialite, taux_horaire, lieu, email, telephone, mot_de_passe, bio, diplomes, experience, photo_profile, adresse, latitude, longitude) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -56,6 +56,19 @@ public class MedecinDAO {
             ps.setString(9, medecin.getDiplomes());
             ps.setString(10, medecin.getExperience());
             ps.setString(11, medecin.getPhotoProfile());
+            ps.setString(12, medecin.getAdresse());
+            
+            if (medecin.getLatitude() != null) {
+                ps.setDouble(13, medecin.getLatitude());
+            } else {
+                ps.setNull(13, java.sql.Types.DOUBLE);
+            }
+            
+            if (medecin.getLongitude() != null) {
+                ps.setDouble(14, medecin.getLongitude());
+            } else {
+                ps.setNull(14, java.sql.Types.DOUBLE);
+            }
 
             return ps.executeUpdate() == 1;
 
@@ -66,7 +79,7 @@ public class MedecinDAO {
     }
 
     // ── VÉRIFICATION TÉLÉPHONE UNIQUE ────────────────────────────────────────
-    
+
     public boolean telephoneExiste(String telephone, String idMedecin) {
         if (telephone == null || telephone.isEmpty()) {
             return false;
@@ -168,7 +181,7 @@ public class MedecinDAO {
 
     public List<Medecin> listerTous() {
         List<Medecin> liste = new ArrayList<>();
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile, adresse, latitude, longitude " +
                 "FROM medecin WHERE email != 'admin@rdv.com' ORDER BY nommed";
 
         try (Connection conn = DBConnection.getConnection();
@@ -187,7 +200,7 @@ public class MedecinDAO {
 
     public List<Medecin> listerTousAvecAdmin() {
         List<Medecin> liste = new ArrayList<>();
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile, adresse, latitude, longitude " +
                 "FROM medecin ORDER BY nommed";
 
         try (Connection conn = DBConnection.getConnection();
@@ -214,7 +227,7 @@ public class MedecinDAO {
             return null;
         }
 
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile, adresse, latitude, longitude " +
                 "FROM medecin WHERE idmed::text = ?";
 
         try (Connection conn = DBConnection.getConnection();
@@ -232,7 +245,7 @@ public class MedecinDAO {
     }
 
     public Medecin trouverParEmail(String email) {
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, mot_de_passe, bio, diplomes, experience, photo_profile " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, mot_de_passe, bio, diplomes, experience, photo_profile, adresse, latitude, longitude " +
                 "FROM medecin WHERE email = ?";
 
         try (Connection conn = DBConnection.getConnection();
@@ -257,7 +270,7 @@ public class MedecinDAO {
 
     public List<Medecin> rechercherParNom(String motCle) {
         List<Medecin> liste = new ArrayList<>();
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile, adresse, latitude, longitude " +
                 "FROM medecin WHERE nommed ILIKE ? AND email != 'admin@rdv.com' ORDER BY nommed";
 
         try (Connection conn = DBConnection.getConnection();
@@ -278,7 +291,7 @@ public class MedecinDAO {
 
     public List<Medecin> listerParSpecialite(String specialite) {
         List<Medecin> liste = new ArrayList<>();
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile, adresse, latitude, longitude " +
                 "FROM medecin WHERE specialite = ? AND email != 'admin@rdv.com' ORDER BY nommed";
 
         try (Connection conn = DBConnection.getConnection();
@@ -318,13 +331,13 @@ public class MedecinDAO {
     public List<Medecin> top5PlusConsultes() {
         List<Medecin> liste = new ArrayList<>();
         String sql = "SELECT m.idmed::text, m.nommed, m.specialite, m.taux_horaire, m.lieu, m.email, m.telephone, " +
-                "m.bio, m.diplomes, m.experience, m.photo_profile, " +
+                "m.bio, m.diplomes, m.experience, m.photo_profile, m.adresse, m.latitude, m.longitude, " +
                 "COUNT(r.idrdv) AS nb_consultations " +
                 "FROM medecin m " +
                 "JOIN rdv r ON m.idmed = r.idmed " +
                 "WHERE r.statut = 'CONFIRME' AND m.email != 'admin@rdv.com' " +
                 "GROUP BY m.idmed, m.nommed, m.specialite, m.taux_horaire, m.lieu, m.email, m.telephone, " +
-                "m.bio, m.diplomes, m.experience, m.photo_profile " +
+                "m.bio, m.diplomes, m.experience, m.photo_profile, m.adresse, m.latitude, m.longitude " +
                 "ORDER BY nb_consultations DESC " +
                 "LIMIT 5";
 
@@ -405,6 +418,53 @@ public class MedecinDAO {
         }
     }
 
+    // ── NOUVELLES MÉTHODES POUR LA CARTE ──────────────────────────────────────
+
+    public List<Medecin> listerAvecCoordonnees() {
+        List<Medecin> liste = new ArrayList<>();
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile, adresse, latitude, longitude " +
+                "FROM medecin WHERE email != 'admin@rdv.com' AND latitude IS NOT NULL AND longitude IS NOT NULL ORDER BY nommed";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                liste.add(mapper(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("[MedecinDAO] Erreur listerAvecCoordonnees : " + e.getMessage());
+        }
+        return liste;
+    }
+
+    public List<Medecin> trouverPlusProches(double lat, double lon, int limit) {
+        List<Medecin> liste = new ArrayList<>();
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile, adresse, latitude, longitude, " +
+                "(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance " +
+                "FROM medecin " +
+                "WHERE email != 'admin@rdv.com' AND latitude IS NOT NULL AND longitude IS NOT NULL " +
+                "ORDER BY distance " +
+                "LIMIT ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDouble(1, lat);
+            ps.setDouble(2, lon);
+            ps.setDouble(3, lat);
+            ps.setInt(4, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    liste.add(mapper(rs));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[MedecinDAO] Erreur trouverPlusProches : " + e.getMessage());
+        }
+        return liste;
+    }
+
     // ── UPDATE ───────────────────────────────────────────────────────────────
 
     public boolean modifier(Medecin medecin) {
@@ -433,7 +493,7 @@ public class MedecinDAO {
         }
 
         String sql = "UPDATE medecin SET nommed = ?, specialite = ?, taux_horaire = ?, " +
-                "lieu = ?, email = ?, telephone = ?, bio = ?, diplomes = ?, experience = ?, photo_profile = ? " +
+                "lieu = ?, email = ?, telephone = ?, bio = ?, diplomes = ?, experience = ?, photo_profile = ?, adresse = ?, latitude = ?, longitude = ? " +
                 "WHERE idmed::text = ?";
 
         try (Connection conn = DBConnection.getConnection();
@@ -449,7 +509,21 @@ public class MedecinDAO {
             ps.setString(8, medecin.getDiplomes());
             ps.setString(9, medecin.getExperience());
             ps.setString(10, medecin.getPhotoProfile());
-            ps.setString(11, medecin.getIdmed());
+            ps.setString(11, medecin.getAdresse());
+            
+            if (medecin.getLatitude() != null) {
+                ps.setDouble(12, medecin.getLatitude());
+            } else {
+                ps.setNull(12, java.sql.Types.DOUBLE);
+            }
+            
+            if (medecin.getLongitude() != null) {
+                ps.setDouble(13, medecin.getLongitude());
+            } else {
+                ps.setNull(13, java.sql.Types.DOUBLE);
+            }
+            
+            ps.setString(14, medecin.getIdmed());
 
             return ps.executeUpdate() == 1;
 
@@ -496,6 +570,17 @@ public class MedecinDAO {
         m.setDiplomes(rs.getString("diplomes"));
         m.setExperience(rs.getString("experience"));
         m.setPhotoProfile(rs.getString("photo_profile"));
+        m.setAdresse(rs.getString("adresse"));
+        
+        Object latObj = rs.getObject("latitude");
+        if (latObj != null) {
+            m.setLatitude(rs.getDouble("latitude"));
+        }
+        
+        Object lonObj = rs.getObject("longitude");
+        if (lonObj != null) {
+            m.setLongitude(rs.getDouble("longitude"));
+        }
         
         return m;
     }

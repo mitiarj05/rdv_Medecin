@@ -16,55 +16,37 @@ public class Medecin {
     private String diplomes;
     private String experience;
     
-    // NOUVEAU : Photo de profil
+    // Photo de profil
     private String photoProfile;
+    
+    // NOUVEAUX CHAMPS POUR GÉOLOCALISATION
+    private String adresse;
+    private Double latitude;
+    private Double longitude;
 
     // ── Constructeurs ────────────────────────────────────────────────────────
 
     public Medecin() {}
 
+    // Constructeur complet
     public Medecin(String idmed, String nommed, String specialite,
-                   int tauxHoraire, String lieu, String email, String telephone) {
-        this.idmed       = idmed;
-        this.nommed      = nommed;
-        this.specialite  = specialite;
+                   int tauxHoraire, String lieu, String email, String telephone,
+                   String bio, String diplomes, String experience, 
+                   String photoProfile, String adresse, Double latitude, Double longitude) {
+        this.idmed = idmed;
+        this.nommed = nommed;
+        this.specialite = specialite;
         this.tauxHoraire = tauxHoraire;
-        this.lieu        = lieu;
-        this.email       = email;
-        this.telephone   = telephone;
-    }
-
-    public Medecin(String idmed, String nommed, String specialite,
-                   int tauxHoraire, String lieu, String email, String telephone, 
-                   String bio, String diplomes, String experience, String photoProfile) {
-        this.idmed       = idmed;
-        this.nommed      = nommed;
-        this.specialite  = specialite;
-        this.tauxHoraire = tauxHoraire;
-        this.lieu        = lieu;
-        this.email       = email;
-        this.telephone   = telephone;
-        this.bio         = bio;
-        this.diplomes    = diplomes;
-        this.experience  = experience;
+        this.lieu = lieu;
+        this.email = email;
+        this.telephone = telephone;
+        this.bio = bio;
+        this.diplomes = diplomes;
+        this.experience = experience;
         this.photoProfile = photoProfile;
-    }
-
-    public Medecin(String idmed, String nommed, String specialite,
-                   int tauxHoraire, String lieu, String email, String telephone, 
-                   String motDePasse, String bio, String diplomes, String experience, String photoProfile) {
-        this.idmed       = idmed;
-        this.nommed      = nommed;
-        this.specialite  = specialite;
-        this.tauxHoraire = tauxHoraire;
-        this.lieu        = lieu;
-        this.email       = email;
-        this.telephone   = telephone;
-        this.motDePasse  = motDePasse;
-        this.bio         = bio;
-        this.diplomes    = diplomes;
-        this.experience  = experience;
-        this.photoProfile = photoProfile;
+        this.adresse = adresse;
+        this.latitude = latitude;
+        this.longitude = longitude;
     }
 
     // ── Getters & Setters ────────────────────────────────────────────────────
@@ -102,16 +84,27 @@ public class Medecin {
     public String getExperience() { return experience; }
     public void setExperience(String experience) { this.experience = experience; }
 
-    // NOUVEAU
     public String getPhotoProfile() { return photoProfile; }
     public void setPhotoProfile(String photoProfile) { this.photoProfile = photoProfile; }
     
-    // Méthode utilitaire pour vérifier si une photo existe
     public boolean hasPhoto() {
         return photoProfile != null && !photoProfile.trim().isEmpty();
     }
 
-    // ── Méthodes utilitaires ─────────────────────────────────────────────────
+    // NOUVEAUX GETTERS/SETTERS
+    public String getAdresse() { return adresse; }
+    public void setAdresse(String adresse) { this.adresse = adresse; }
+
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
+    
+    // Méthodes utilitaires
+    public boolean hasCoordinates() {
+        return latitude != null && longitude != null;
+    }
     
     public String getBioFormatee() {
         if (bio == null || bio.trim().isEmpty()) {
@@ -134,14 +127,27 @@ public class Medecin {
         return experience.trim();
     }
 
+    // Calcul de distance entre deux points (formule de Haversine)
+    public double distanceTo(double lat, double lon) {
+        if (latitude == null || longitude == null) return Double.MAX_VALUE;
+        final int R = 6371; // Rayon de la Terre en km
+        double latDistance = Math.toRadians(lat - latitude);
+        double lonDistance = Math.toRadians(lon - longitude);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2) +
+                   Math.cos(Math.toRadians(latitude)) * Math.cos(Math.toRadians(lat)) *
+                   Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
     @Override
     public String toString() {
         return "Medecin{" +
-                "idmed='"      + idmed      + '\'' +
-                ", nommed='"   + nommed     + '\'' +
+                "idmed='" + idmed + '\'' +
+                ", nommed='" + nommed + '\'' +
                 ", specialite='" + specialite + '\'' +
-                ", lieu='"     + lieu       + '\'' +
-                ", email='"    + email      + '\'' +
+                ", lieu='" + lieu + '\'' +
+                ", email='" + email + '\'' +
                 ", telephone='" + telephone + '\'' +
                 '}';
     }

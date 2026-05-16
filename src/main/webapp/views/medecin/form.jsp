@@ -145,6 +145,39 @@
             </div>
             <!-- ========== FIN CHAMPS PROFIL DÉTAILLÉ ========== -->
 
+            <!-- ========== NOUVEAUX CHAMPS GÉOLOCALISATION ========== -->
+            <div class="form-group">
+                <label>📍 Adresse complète du cabinet</label>
+                <textarea name="adresse" id="adresse" rows="2" 
+                          style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-family:inherit;"
+                          placeholder="Ex: 123 Avenue de l'Indépendance, Antananarivo, Madagascar">${medecin.adresse}</textarea>
+                <small style="color:#666; font-size:11px;">Adresse précise pour la carte. Laissez vide si non disponible.</small>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                <div class="form-group">
+                    <label>🌐 Latitude</label>
+                    <input type="text" name="latitude" id="latitude" 
+                           value="${medecin.latitude}" 
+                           placeholder="Ex: -18.8792" 
+                           style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                </div>
+                <div class="form-group">
+                    <label>🌐 Longitude</label>
+                    <input type="text" name="longitude" id="longitude" 
+                           value="${medecin.longitude}" 
+                           placeholder="Ex: 47.5079" 
+                           style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <button type="button" id="geocodeBtn" class="btn btn-secondary" style="background: #6c757d;">
+                    <i class="fas fa-map-pin"></i> Obtenir les coordonnées depuis l'adresse
+                </button>
+            </div>
+            <!-- ========== FIN CHAMPS GÉOLOCALISATION ========== -->
+
             <c:if test="${empty medecin}">
                 <div class="form-group">
                     <label>Mot de passe</label>
@@ -264,6 +297,40 @@ telephoneInput.addEventListener('input', function() {
 telephoneInput.addEventListener('blur', function() {
     if (checkTimeout) clearTimeout(checkTimeout);
     verifierTelephone();
+});
+
+// ========== GÉOCODAGE DE L'ADRESSE ==========
+document.getElementById('geocodeBtn').addEventListener('click', function() {
+    var adresse = document.getElementById('adresse').value;
+    if (!adresse.trim()) {
+        alert('Veuillez entrer une adresse d\'abord.');
+        return;
+    }
+    
+    var btn = document.getElementById('geocodeBtn');
+    var originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recherche...';
+    btn.disabled = true;
+    
+    fetch('${pageContext.request.contextPath}/api/geocode?adresse=' + encodeURIComponent(adresse))
+        .then(response => response.json())
+        .then(data => {
+            if (data.latitude && data.longitude) {
+                document.getElementById('latitude').value = data.latitude;
+                document.getElementById('longitude').value = data.longitude;
+                alert('Coordonnées trouvées !\nLatitude: ' + data.latitude + '\nLongitude: ' + data.longitude);
+            } else {
+                alert('Adresse non trouvée. Veuillez vérifier l\'adresse ou la saisir plus précisément.');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la recherche. Veuillez réessayer.');
+        })
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
 });
 </script>
 
