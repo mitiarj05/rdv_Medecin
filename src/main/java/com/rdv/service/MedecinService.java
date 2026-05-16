@@ -18,7 +18,9 @@ public class MedecinService {
     // ── Inscription ───────────────────────────────────────────────────────────
 
     public String inscrire(String nom, String specialite, String tauxStr,
-                           String lieu, String email, String telephone, String motDePasse) { // MODIFIÉ
+                           String lieu, String email, String telephone, 
+                           String bio, String diplomes, String experience, String photoProfile,
+                           String motDePasse) {
 
         if (nom == null || nom.trim().isEmpty())
             return "Le nom est obligatoire.";
@@ -48,7 +50,11 @@ public class MedecinService {
         medecin.setTauxHoraire(taux);
         medecin.setLieu(lieu.trim());
         medecin.setEmail(email.trim().toLowerCase());
-        medecin.setTelephone(telephone); // NOUVEAU
+        medecin.setTelephone(telephone);
+        medecin.setBio(bio != null ? bio.trim() : null);
+        medecin.setDiplomes(diplomes != null ? diplomes.trim() : null);
+        medecin.setExperience(experience != null ? experience.trim() : null);
+        medecin.setPhotoProfile(photoProfile != null ? photoProfile.trim() : null);
         medecin.setMotDePasse(PasswordUtil.hasher(motDePasse));
 
         boolean ok = medecinDAO.inserer(medecin);
@@ -76,9 +82,6 @@ public class MedecinService {
         return medecinDAO.listerTous();
     }
 
-    /**
-     * Liste tous les médecins SANS exclure l'admin (pour l'affichage spécial admin)
-     */
     public List<Medecin> listerTousAvecAdmin() {
         return medecinDAO.listerTousAvecAdmin();
     }
@@ -117,7 +120,6 @@ public class MedecinService {
             System.out.println("[MedecinService] ID médecin null ou vide");
             return new ArrayList<>();
         }
-        System.out.println("[MedecinService] Recherche patients pour médecin: " + idMedecin);
         return medecinDAO.listerPatientsAvecStatistiques(idMedecin);
     }
 
@@ -131,7 +133,8 @@ public class MedecinService {
     // ── MODIFICATION ─────────────────────────────────────────────────────────
 
     public String modifier(String idmed, String nom, String specialite,
-                           String tauxStr, String lieu, String email, String telephone) { // MODIFIÉ
+                           String tauxStr, String lieu, String email, String telephone,
+                           String bio, String diplomes, String experience, String photoProfile) {
         if (nom == null || nom.trim().isEmpty())
             return "Le nom est obligatoire.";
         if (email == null || !email.contains("@"))
@@ -151,7 +154,11 @@ public class MedecinService {
         medecin.setTauxHoraire(taux);
         medecin.setLieu(lieu.trim());
         medecin.setEmail(email.trim().toLowerCase());
-        medecin.setTelephone(telephone); // NOUVEAU
+        medecin.setTelephone(telephone);
+        medecin.setBio(bio != null ? bio.trim() : null);
+        medecin.setDiplomes(diplomes != null ? diplomes.trim() : null);
+        medecin.setExperience(experience != null ? experience.trim() : null);
+        medecin.setPhotoProfile(photoProfile != null ? photoProfile.trim() : null);
 
         boolean ok = medecinDAO.modifier(medecin);
         return ok ? null : "Erreur lors de la modification.";

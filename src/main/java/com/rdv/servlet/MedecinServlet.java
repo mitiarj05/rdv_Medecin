@@ -105,124 +105,147 @@ public class MedecinServlet extends HttpServlet {
                 req.getRequestDispatcher("/views/medecin/top5.jsp").forward(req, resp);
                 break;
                 
+            // ========== NOUVEAU : Profil public détaillé du médecin ==========
+            case "profile":
+                afficherProfilPublic(req, resp);
+                break;
+                
             default:
                 resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
         }
     }
     
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
+protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+        throws ServletException, IOException {
 
-        req.setCharacterEncoding("UTF-8");
-        String action = req.getParameter("action");
+    req.setCharacterEncoding("UTF-8");
+    String action = req.getParameter("action");
 
-        if ("enregistrer".equals(action)) {
-            String id = req.getParameter("idmed");
-            String telephone = req.getParameter("telephone"); // NOUVEAU
+    if ("enregistrer".equals(action)) {
+        String id = req.getParameter("idmed");
+        String telephone = req.getParameter("telephone");
+        
+        String bio = req.getParameter("bio");
+        String diplomes = req.getParameter("diplomes");
+        String experience = req.getParameter("experience");
+        
+        String photoProfile = null;
 
-            if (id != null && !id.isEmpty()) {
-                // MODIFICATION - avec téléphone
-                String erreur = medecinService.modifier(
-                        id,
-                        req.getParameter("nommed"),
-                        req.getParameter("specialite"),
-                        req.getParameter("taux_horaire"),
-                        req.getParameter("lieu"),
-                        req.getParameter("email"),
-                        telephone
-                );
-                if (erreur != null) {
-                    req.setAttribute("erreur", erreur);
-                    req.setAttribute("medecin", medecinService.trouverParId(id));
-                    req.setAttribute("specialites", medecinService.listerSpecialites());
-                    req.getRequestDispatcher("/views/medecin/form.jsp").forward(req, resp);
-                    return;
-                }
+        if (id != null && !id.isEmpty()) {
+            // Garder la photo existante si elle n'est pas modifiée
+            Medecin existing = medecinService.trouverParId(id);
+            if (existing != null) {
+                photoProfile = existing.getPhotoProfile();
+            }
+            
+            String erreur = medecinService.modifier(
+                    id,
+                    req.getParameter("nommed"),
+                    req.getParameter("specialite"),
+                    req.getParameter("taux_horaire"),
+                    req.getParameter("lieu"),
+                    req.getParameter("email"),
+                    telephone,
+                    bio,
+                    diplomes,
+                    experience,
+                    photoProfile
+            );
+            if (erreur != null) {
+                req.setAttribute("erreur", erreur);
+                req.setAttribute("medecin", medecinService.trouverParId(id));
+                req.setAttribute("specialites", medecinService.listerSpecialites());
+                req.getRequestDispatcher("/views/medecin/form.jsp").forward(req, resp);
+                return;
+            }
 
-                HttpSession session = req.getSession(false);
-                if (session != null) {
-                    Medecin medecinMisAJour = medecinService.trouverParId(id);
-                    if (medecinMisAJour != null) {
-                        session.setAttribute("utilisateur", medecinMisAJour);
-                        session.setAttribute("idUtilisateur", medecinMisAJour.getIdmed());
-                    }
-                }
-            } else {
-                // CRÉATION - avec téléphone
-                String erreur = medecinService.inscrire(
-                        req.getParameter("nommed"),
-                        req.getParameter("specialite"),
-                        req.getParameter("taux_horaire"),
-                        req.getParameter("lieu"),
-                        req.getParameter("email"),
-                        telephone,
-                        req.getParameter("password")
-                );
-                if (erreur != null) {
-                    req.setAttribute("erreur", erreur);
-                    req.setAttribute("specialites", medecinService.listerSpecialites());
-                    req.getRequestDispatcher("/views/medecin/form.jsp").forward(req, resp);
-                    return;
+            HttpSession session = req.getSession(false);
+            if (session != null) {
+                Medecin medecinMisAJour = medecinService.trouverParId(id);
+                if (medecinMisAJour != null) {
+                    session.setAttribute("utilisateur", medecinMisAJour);
+                    session.setAttribute("idUtilisateur", medecinMisAJour.getIdmed());
                 }
             }
-        }
-
-        HttpSession session = req.getSession(false);
-        String role = (String) session.getAttribute("role");
-
-        if ("medecin".equals(role)) {
-            resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
         } else {
-            resp.sendRedirect(req.getContextPath() + "/medecin?action=liste");
+            String erreur = medecinService.inscrire(
+                    req.getParameter("nommed"),
+                    req.getParameter("specialite"),
+                    req.getParameter("taux_horaire"),
+                    req.getParameter("lieu"),
+                    req.getParameter("email"),
+                    telephone,
+                    bio,
+                    diplomes,
+                    experience,
+                    null, // Pas de photo à la création
+                    req.getParameter("password")
+            );
+            if (erreur != null) {
+                req.setAttribute("erreur", erreur);
+                req.setAttribute("specialites", medecinService.listerSpecialites());
+                req.getRequestDispatcher("/views/medecin/form.jsp").forward(req, resp);
+                return;
+            }
         }
     }
 
-    private void afficherMesPatients(HttpServletRequest req, HttpServletResponse resp)
-        throws ServletException, IOException {
-    
-    System.out.println("=== AFFICHER MES PATIENTS ===");
-    
     HttpSession session = req.getSession(false);
-    if (session == null) {
-        System.err.println("Session est null!");
-        resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
-        return;
-    }
-    
-    System.out.println("Session ID: " + session.getId());
-    
-    // Lister tous les attributs de session
-    java.util.Enumeration<String> attrs = session.getAttributeNames();
-    System.out.println("Attributs de session:");
-    while (attrs.hasMoreElements()) {
-        String attr = attrs.nextElement();
-        System.out.println("  " + attr + " = " + session.getAttribute(attr));
-    }
-    
-    String idMedecin = (String) session.getAttribute("idUtilisateur");
-    System.out.println("ID Médecin = '" + idMedecin + "'");
-    
-    if (idMedecin == null) {
-        System.err.println("ERREUR: idUtilisateur est NULL dans la session!");
-        resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
-        return;
-    }
-    
-    try {
-        List<MedecinDAO.PatientAvecStat> mesPatients = medecinService.listerPatientsAvecStats(idMedecin);
-        System.out.println("Résultat: " + (mesPatients != null ? mesPatients.size() : 0) + " patients");
-        
-        req.setAttribute("patientsDuMedecin", mesPatients);
-        req.setAttribute("totalPatients", mesPatients != null ? mesPatients.size() : 0);
-        
-        req.getRequestDispatcher("/views/medecin/mesPatients.jsp").forward(req, resp);
-    } catch (Exception e) {
-        System.err.println("ERREUR dans afficherMesPatients: " + e.getMessage());
-        e.printStackTrace();
-        throw e;
+    String role = (String) session.getAttribute("role");
+
+    if ("medecin".equals(role)) {
+        resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
+    } else {
+        resp.sendRedirect(req.getContextPath() + "/medecin?action=liste");
     }
 }
+
+    private void afficherMesPatients(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        
+        System.out.println("=== AFFICHER MES PATIENTS ===");
+        
+        HttpSession session = req.getSession(false);
+        if (session == null) {
+            System.err.println("Session est null!");
+            resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
+            return;
+        }
+        
+        System.out.println("Session ID: " + session.getId());
+        
+        // Lister tous les attributs de session
+        java.util.Enumeration<String> attrs = session.getAttributeNames();
+        System.out.println("Attributs de session:");
+        while (attrs.hasMoreElements()) {
+            String attr = attrs.nextElement();
+            System.out.println("  " + attr + " = " + session.getAttribute(attr));
+        }
+        
+        String idMedecin = (String) session.getAttribute("idUtilisateur");
+        System.out.println("ID Médecin = '" + idMedecin + "'");
+        
+        if (idMedecin == null) {
+            System.err.println("ERREUR: idUtilisateur est NULL dans la session!");
+            resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
+            return;
+        }
+        
+        try {
+            List<MedecinDAO.PatientAvecStat> mesPatients = medecinService.listerPatientsAvecStats(idMedecin);
+            System.out.println("Résultat: " + (mesPatients != null ? mesPatients.size() : 0) + " patients");
+            
+            req.setAttribute("patientsDuMedecin", mesPatients);
+            req.setAttribute("totalPatients", mesPatients != null ? mesPatients.size() : 0);
+            
+            req.getRequestDispatcher("/views/medecin/mesPatients.jsp").forward(req, resp);
+        } catch (Exception e) {
+            System.err.println("ERREUR dans afficherMesPatients: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
     
     private void retirerPatient(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
@@ -334,6 +357,31 @@ public class MedecinServlet extends HttpServlet {
         req.setAttribute("derniersPatients", derniersPatients);
 
         req.getRequestDispatcher("/views/medecin/dashboard.jsp").forward(req, resp);
+    }
+
+    /**
+     * Affiche le profil public détaillé d'un médecin
+     * Accessible par les patients pour consulter la bio, diplômes et expérience
+     */
+    private void afficherProfilPublic(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        
+        String idMedecin = req.getParameter("id");
+        
+        if (idMedecin == null || idMedecin.isEmpty()) {
+            resp.sendRedirect(req.getContextPath() + "/search");
+            return;
+        }
+        
+        Medecin medecin = medecinService.trouverParId(idMedecin);
+        
+        if (medecin == null) {
+            resp.sendRedirect(req.getContextPath() + "/search?error=notfound");
+            return;
+        }
+        
+        req.setAttribute("medecin", medecin);
+        req.getRequestDispatcher("/views/medecin/profile.jsp").forward(req, resp);
     }
 
     public static class PatientInfo {

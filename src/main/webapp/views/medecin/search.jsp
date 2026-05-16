@@ -59,13 +59,18 @@
                                 </p>
                             </div>
                             <div style="margin-top:14px; display:flex; gap:8px;">
+                                <!-- LIEN VERS LE PROFIL PUBLIC - MODIFIÉ POUR POINTER VERS /search -->
+                                <a href="${pageContext.request.contextPath}/search?action=profile&id=${m.idmed}"
+                                   class="btn btn-info" style="flex:1; text-align:center; font-size:13px; background:#17a2b8; color:white; text-decoration:none; padding:8px; border-radius:6px;">
+                                    <i class="fas fa-user-md"></i> Voir profil
+                                </a>
                                 <a href="${pageContext.request.contextPath}/rdv?action=horaires&idmed=${m.idmed}"
-                                   class="btn btn-primary" style="flex:1; text-align:center; font-size:13px;">
-                                    Voir créneaux
+                                   class="btn btn-primary" style="flex:1; text-align:center; font-size:13px; background:#1a73e8; color:white; text-decoration:none; padding:8px; border-radius:6px;">
+                                    <i class="fas fa-clock"></i> Créneaux
                                 </a>
                                 <a href="${pageContext.request.contextPath}/rdv?action=form&idmed=${m.idmed}"
-                                   class="btn btn-success" style="flex:1; text-align:center; font-size:13px;">
-                                    Prendre RDV
+                                   class="btn btn-success" style="flex:1; text-align:center; font-size:13px; background:#34a853; color:white; text-decoration:none; padding:8px; border-radius:6px;">
+                                    <i class="fas fa-calendar-plus"></i> RDV
                                 </a>
                             </div>
                         </div>
@@ -75,5 +80,33 @@
         </c:choose>
     </div>
 </div>
+
+<style>
+    .btn-info {
+        background-color: #17a2b8;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-info:hover {
+        background-color: #138496;
+        transform: translateY(-1px);
+    }
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 0.375rem;
+    }
+    .badge-success {
+        background-color: #d1e7dd;
+        color: #0f5132;
+    }
+</style>
+
 </body>
 </html>

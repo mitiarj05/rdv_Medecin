@@ -39,8 +39,8 @@ public class MedecinDAO {
             medecin.setTelephone(normalizedPhone);
         }
 
-        String sql = "INSERT INTO medecin (nommed, specialite, taux_horaire, lieu, email, telephone, mot_de_passe) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO medecin (nommed, specialite, taux_horaire, lieu, email, telephone, mot_de_passe, bio, diplomes, experience, photo_profile) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -52,6 +52,10 @@ public class MedecinDAO {
             ps.setString(5, medecin.getEmail());
             ps.setString(6, medecin.getTelephone());
             ps.setString(7, medecin.getMotDePasse());
+            ps.setString(8, medecin.getBio());
+            ps.setString(9, medecin.getDiplomes());
+            ps.setString(10, medecin.getExperience());
+            ps.setString(11, medecin.getPhotoProfile());
 
             return ps.executeUpdate() == 1;
 
@@ -61,21 +65,13 @@ public class MedecinDAO {
         }
     }
 
-    // ── VÉRIFICATION TÉLÉPHONE UNIQUE (avec normalisation) ────────────────────
+    // ── VÉRIFICATION TÉLÉPHONE UNIQUE ────────────────────────────────────────
     
-    /**
-     * Vérifie si un numéro de téléphone existe déjà chez un médecin ou un patient
-     * Le numéro est normalisé avant vérification
-     * @param telephone Le numéro à vérifier
-     * @param idMedecin L'ID du médecin actuel (null pour création, sinon pour modification)
-     * @return true si le téléphone existe déjà, false sinon
-     */
     public boolean telephoneExiste(String telephone, String idMedecin) {
         if (telephone == null || telephone.isEmpty()) {
             return false;
         }
         
-        // Normaliser le numéro avant vérification
         String normalizedPhone = PhoneUtil.normaliserTelephone(telephone);
         if (normalizedPhone == null) {
             return false;
@@ -89,7 +85,6 @@ public class MedecinDAO {
         }
         
         try (Connection conn = DBConnection.getConnection()) {
-            // Vérifier chez les médecins
             try (PreparedStatement ps = conn.prepareStatement(sqlMedecin)) {
                 ps.setString(1, normalizedPhone);
                 if (idMedecin != null && !idMedecin.isEmpty()) {
@@ -97,18 +92,15 @@ public class MedecinDAO {
                 }
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next() && rs.getInt(1) > 0) {
-                        System.out.println("[MedecinDAO] Téléphone " + normalizedPhone + " trouvé chez un médecin");
                         return true;
                     }
                 }
             }
             
-            // Vérifier chez les patients
             try (PreparedStatement ps = conn.prepareStatement(sqlPatient)) {
                 ps.setString(1, normalizedPhone);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next() && rs.getInt(1) > 0) {
-                        System.out.println("[MedecinDAO] Téléphone " + normalizedPhone + " trouvé chez un patient");
                         return true;
                     }
                 }
@@ -176,7 +168,7 @@ public class MedecinDAO {
 
     public List<Medecin> listerTous() {
         List<Medecin> liste = new ArrayList<>();
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile " +
                 "FROM medecin WHERE email != 'admin@rdv.com' ORDER BY nommed";
 
         try (Connection conn = DBConnection.getConnection();
@@ -195,7 +187,7 @@ public class MedecinDAO {
 
     public List<Medecin> listerTousAvecAdmin() {
         List<Medecin> liste = new ArrayList<>();
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile " +
                 "FROM medecin ORDER BY nommed";
 
         try (Connection conn = DBConnection.getConnection();
@@ -222,7 +214,7 @@ public class MedecinDAO {
             return null;
         }
 
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile " +
                 "FROM medecin WHERE idmed::text = ?";
 
         try (Connection conn = DBConnection.getConnection();
@@ -240,7 +232,7 @@ public class MedecinDAO {
     }
 
     public Medecin trouverParEmail(String email) {
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, mot_de_passe " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, mot_de_passe, bio, diplomes, experience, photo_profile " +
                 "FROM medecin WHERE email = ?";
 
         try (Connection conn = DBConnection.getConnection();
@@ -265,7 +257,7 @@ public class MedecinDAO {
 
     public List<Medecin> rechercherParNom(String motCle) {
         List<Medecin> liste = new ArrayList<>();
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile " +
                 "FROM medecin WHERE nommed ILIKE ? AND email != 'admin@rdv.com' ORDER BY nommed";
 
         try (Connection conn = DBConnection.getConnection();
@@ -286,7 +278,7 @@ public class MedecinDAO {
 
     public List<Medecin> listerParSpecialite(String specialite) {
         List<Medecin> liste = new ArrayList<>();
-        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone " +
+        String sql = "SELECT idmed::text, nommed, specialite, taux_horaire, lieu, email, telephone, bio, diplomes, experience, photo_profile " +
                 "FROM medecin WHERE specialite = ? AND email != 'admin@rdv.com' ORDER BY nommed";
 
         try (Connection conn = DBConnection.getConnection();
@@ -326,11 +318,13 @@ public class MedecinDAO {
     public List<Medecin> top5PlusConsultes() {
         List<Medecin> liste = new ArrayList<>();
         String sql = "SELECT m.idmed::text, m.nommed, m.specialite, m.taux_horaire, m.lieu, m.email, m.telephone, " +
+                "m.bio, m.diplomes, m.experience, m.photo_profile, " +
                 "COUNT(r.idrdv) AS nb_consultations " +
                 "FROM medecin m " +
                 "JOIN rdv r ON m.idmed = r.idmed " +
                 "WHERE r.statut = 'CONFIRME' AND m.email != 'admin@rdv.com' " +
-                "GROUP BY m.idmed, m.nommed, m.specialite, m.taux_horaire, m.lieu, m.email, m.telephone " +
+                "GROUP BY m.idmed, m.nommed, m.specialite, m.taux_horaire, m.lieu, m.email, m.telephone, " +
+                "m.bio, m.diplomes, m.experience, m.photo_profile " +
                 "ORDER BY nb_consultations DESC " +
                 "LIMIT 5";
 
@@ -354,8 +348,6 @@ public class MedecinDAO {
         List<PatientAvecStat> liste = new ArrayList<>();
 
         if (idMedecin == null || idMedecin.isEmpty()) return liste;
-
-        System.out.println("[MedecinDAO] Recherche patients pour médecin: " + idMedecin);
 
         String sql = "SELECT p.idpat, p.nom_pat, p.email, p.telephone, p.datenais, " +
                 "COUNT(r.idrdv) as nb_rdv, " +
@@ -386,7 +378,6 @@ public class MedecinDAO {
                         p.setDernierRdv(ts.toLocalDateTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
                     }
                     liste.add(p);
-                    System.out.println("[MedecinDAO] Patient: " + p.getNomPat());
                 }
             }
         } catch (SQLException e) {
@@ -427,7 +418,6 @@ public class MedecinDAO {
             return false;
         }
         
-        // Normaliser et vérifier le téléphone
         String normalizedPhone = null;
         if (medecin.getTelephone() != null && !medecin.getTelephone().isEmpty()) {
             normalizedPhone = PhoneUtil.normaliserTelephone(medecin.getTelephone());
@@ -443,7 +433,8 @@ public class MedecinDAO {
         }
 
         String sql = "UPDATE medecin SET nommed = ?, specialite = ?, taux_horaire = ?, " +
-                "lieu = ?, email = ?, telephone = ? WHERE idmed::text = ?";
+                "lieu = ?, email = ?, telephone = ?, bio = ?, diplomes = ?, experience = ?, photo_profile = ? " +
+                "WHERE idmed::text = ?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -454,7 +445,11 @@ public class MedecinDAO {
             ps.setString(4, medecin.getLieu());
             ps.setString(5, medecin.getEmail());
             ps.setString(6, medecin.getTelephone());
-            ps.setString(7, medecin.getIdmed());
+            ps.setString(7, medecin.getBio());
+            ps.setString(8, medecin.getDiplomes());
+            ps.setString(9, medecin.getExperience());
+            ps.setString(10, medecin.getPhotoProfile());
+            ps.setString(11, medecin.getIdmed());
 
             return ps.executeUpdate() == 1;
 
@@ -497,6 +492,11 @@ public class MedecinDAO {
         m.setLieu(rs.getString("lieu"));
         m.setEmail(rs.getString("email"));
         m.setTelephone(rs.getString("telephone"));
+        m.setBio(rs.getString("bio"));
+        m.setDiplomes(rs.getString("diplomes"));
+        m.setExperience(rs.getString("experience"));
+        m.setPhotoProfile(rs.getString("photo_profile"));
+        
         return m;
     }
 

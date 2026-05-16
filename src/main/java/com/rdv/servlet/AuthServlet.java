@@ -142,16 +142,29 @@ public class AuthServlet extends HttpServlet {
             throws IOException, ServletException {
 
         String role = req.getParameter("role");
-        String telephone = req.getParameter("telephone"); // NOUVEAU
+        String telephone = req.getParameter("telephone");
+        
+        // Champs pour profil détaillé
+        String bio = req.getParameter("bio");
+        String diplomes = req.getParameter("diplomes");
+        String experience = req.getParameter("experience");
+        
+        // Photo de profil (toujours null à l'inscription via formulaire)
+        String photoProfile = null;
 
         if ("medecin".equals(role)) {
+            // CORRECTION : Ajout du paramètre photoProfile (null pour l'inscription)
             String erreur = medecinService.inscrire(
                     req.getParameter("nommed"),
                     req.getParameter("specialite"),
                     req.getParameter("taux_horaire"),
                     req.getParameter("lieu"),
                     req.getParameter("email"),
-                    telephone,  // NOUVEAU
+                    telephone,
+                    bio,
+                    diplomes,
+                    experience,
+                    photoProfile,  // ← PARAMÈTRE MANQUANT AJOUTÉ
                     req.getParameter("password")
             );
             if (erreur != null) {
@@ -167,7 +180,7 @@ public class AuthServlet extends HttpServlet {
                     req.getParameter("nom_pat"),
                     req.getParameter("datenais"),
                     req.getParameter("email"),
-                    telephone,  // NOUVEAU
+                    telephone,
                     req.getParameter("password")
             );
             if (erreur != null) {

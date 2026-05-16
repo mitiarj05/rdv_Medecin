@@ -8,8 +8,16 @@ public class Medecin {
     private int    tauxHoraire;
     private String lieu;
     private String email;
-    private String telephone;  // NOUVEAU
+    private String telephone;
     private String motDePasse;
+    
+    // Profil détaillé
+    private String bio;
+    private String diplomes;
+    private String experience;
+    
+    // NOUVEAU : Photo de profil
+    private String photoProfile;
 
     // ── Constructeurs ────────────────────────────────────────────────────────
 
@@ -27,7 +35,24 @@ public class Medecin {
     }
 
     public Medecin(String idmed, String nommed, String specialite,
-                   int tauxHoraire, String lieu, String email, String telephone, String motDePasse) {
+                   int tauxHoraire, String lieu, String email, String telephone, 
+                   String bio, String diplomes, String experience, String photoProfile) {
+        this.idmed       = idmed;
+        this.nommed      = nommed;
+        this.specialite  = specialite;
+        this.tauxHoraire = tauxHoraire;
+        this.lieu        = lieu;
+        this.email       = email;
+        this.telephone   = telephone;
+        this.bio         = bio;
+        this.diplomes    = diplomes;
+        this.experience  = experience;
+        this.photoProfile = photoProfile;
+    }
+
+    public Medecin(String idmed, String nommed, String specialite,
+                   int tauxHoraire, String lieu, String email, String telephone, 
+                   String motDePasse, String bio, String diplomes, String experience, String photoProfile) {
         this.idmed       = idmed;
         this.nommed      = nommed;
         this.specialite  = specialite;
@@ -36,6 +61,10 @@ public class Medecin {
         this.email       = email;
         this.telephone   = telephone;
         this.motDePasse  = motDePasse;
+        this.bio         = bio;
+        this.diplomes    = diplomes;
+        this.experience  = experience;
+        this.photoProfile = photoProfile;
     }
 
     // ── Getters & Setters ────────────────────────────────────────────────────
@@ -63,6 +92,47 @@ public class Medecin {
 
     public String getMotDePasse() { return motDePasse; }
     public void setMotDePasse(String motDePasse) { this.motDePasse = motDePasse; }
+
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
+
+    public String getDiplomes() { return diplomes; }
+    public void setDiplomes(String diplomes) { this.diplomes = diplomes; }
+
+    public String getExperience() { return experience; }
+    public void setExperience(String experience) { this.experience = experience; }
+
+    // NOUVEAU
+    public String getPhotoProfile() { return photoProfile; }
+    public void setPhotoProfile(String photoProfile) { this.photoProfile = photoProfile; }
+    
+    // Méthode utilitaire pour vérifier si une photo existe
+    public boolean hasPhoto() {
+        return photoProfile != null && !photoProfile.trim().isEmpty();
+    }
+
+    // ── Méthodes utilitaires ─────────────────────────────────────────────────
+    
+    public String getBioFormatee() {
+        if (bio == null || bio.trim().isEmpty()) {
+            return "Aucune biographie renseignée.";
+        }
+        return bio.trim();
+    }
+    
+    public String getDiplomesFormatee() {
+        if (diplomes == null || diplomes.trim().isEmpty()) {
+            return "Aucun diplôme renseigné.";
+        }
+        return diplomes.trim();
+    }
+    
+    public String getExperienceFormatee() {
+        if (experience == null || experience.trim().isEmpty()) {
+            return "Aucune expérience renseignée.";
+        }
+        return experience.trim();
+    }
 
     @Override
     public String toString() {

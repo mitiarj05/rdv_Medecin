@@ -15,6 +15,41 @@
             <div class="alert alert-danger">${erreur}</div>
         </c:if>
 
+        <!-- SECTION PHOTO DE PROFIL (uniquement pour modification) -->
+        <c:if test="${not empty medecin}">
+            <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 12px;">
+                <div style="margin-bottom: 10px;">
+                    <c:choose>
+                        <c:when test="${not empty medecin.photoProfile}">
+                            <img src="${medecin.photoProfile}" 
+                                 alt="Photo de profil" 
+                                 style="width: 120px; height: 120px; object-fit: cover; border-radius: 50%; border: 3px solid #1a73e8;">
+                        </c:when>
+                        <c:otherwise>
+                            <div style="width: 120px; height: 120px; background: #e9ecef; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-user-md" style="font-size: 50px; color: #adb5bd;"></i>
+                            </div>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+                <div>
+                    <form action="${pageContext.request.contextPath}/upload-photo" method="post" enctype="multipart/form-data" style="display: inline;">
+                        <input type="file" name="photo" accept="image/jpeg,image/png,image/gif" style="display: none;" id="photoInput" onchange="this.form.submit()">
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('photoInput').click();" style="background: #1a73e8;">
+                            <i class="fas fa-upload"></i> Changer la photo
+                        </button>
+                    </form>
+                    <c:if test="${not empty medecin.photoProfile}">
+                        <a href="${pageContext.request.contextPath}/supprimer-photo" class="btn btn-danger" style="margin-left: 10px;" onclick="return confirm('Supprimer la photo de profil de ce médecin ?')">
+                            <i class="fas fa-trash-alt"></i> Supprimer
+                        </a>
+                    </c:if>
+                </div>
+                <small style="color: #666; display: block; margin-top: 8px;">Format JPG, PNG ou GIF. Max 5 Mo.</small>
+            </div>
+            <hr style="margin: 15px 0;">
+        </c:if>
+
         <form action="${pageContext.request.contextPath}/admin" method="post" id="medecinForm">
             <input type="hidden" name="action" value="enregistrerMedecin">
             <input type="hidden" name="idmed" id="idmed" value="${medecin.idmed}">
@@ -51,6 +86,30 @@
                        style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
                 <small style="color:#666; font-size:11px;">Format: 0328725411 ou +261328725411</small>
                 <div id="telephoneStatus" style="font-size:13px; margin-top:8px; padding:8px; border-radius:6px; display:none;"></div>
+            </div>
+
+            <div class="form-group">
+                <label>👨‍⚕️ Biographie / Présentation</label>
+                <textarea name="bio" id="bio" rows="4" 
+                          style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-family:inherit;"
+                          placeholder="Parlez de vous, votre parcours, votre philosophie médicale...">${medecin.bio}</textarea>
+                <small style="color:#666; font-size:11px;">Une courte présentation qui apparaîtra sur le profil public du médecin.</small>
+            </div>
+
+            <div class="form-group">
+                <label>🎓 Diplômes et formations</label>
+                <textarea name="diplomes" id="diplomes" rows="3" 
+                          style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-family:inherit;"
+                          placeholder="Ex: Doctorat en Médecine - Université d'Antananarivo&#10;Spécialisation en Cardiologie - CHU Paris">${medecin.diplomes}</textarea>
+                <small style="color:#666; font-size:11px;">Listez les diplômes, un par ligne.</small>
+            </div>
+
+            <div class="form-group">
+                <label>💼 Expérience professionnelle</label>
+                <textarea name="experience" id="experience" rows="3" 
+                          style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-family:inherit;"
+                          placeholder="Ex: 10 ans d'expérience en cardiologie&#10;Chef de service à l'hôpital HJRA (2015-2020)">${medecin.experience}</textarea>
+                <small style="color:#666; font-size:11px;">Décrivez son parcours et ses expériences.</small>
             </div>
 
             <c:if test="${empty medecin}">

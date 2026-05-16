@@ -224,27 +224,31 @@ public class AdminServlet extends HttpServlet {
     }
 
     private void enregistrerMedecin(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
+        throws ServletException, IOException {
 
-        String id = req.getParameter("idmed");
-        String nom = req.getParameter("nommed");
-        String specialite = req.getParameter("specialite");
-        String tauxStr = req.getParameter("taux_horaire");
-        String lieu = req.getParameter("lieu");
-        String email = req.getParameter("email");
-        String telephone = req.getParameter("telephone"); // NOUVEAU
-        String password = req.getParameter("password");
-
-        String erreur = null;
-
-        if (id != null && !id.isEmpty()) {
-            // MODIFICATION - avec téléphone
-            erreur = medecinService.modifier(id, nom, specialite, tauxStr, lieu, email, telephone);
-        } else {
-            // CRÉATION - avec téléphone
-            erreur = medecinService.inscrire(nom, specialite, tauxStr, lieu, email, telephone, password);
+    String id = req.getParameter("idmed");
+    String nom = req.getParameter("nommed");
+    String specialite = req.getParameter("specialite");
+    String tauxStr = req.getParameter("taux_horaire");
+    String lieu = req.getParameter("lieu");
+    String email = req.getParameter("email");
+    String telephone = req.getParameter("telephone");
+    String password = req.getParameter("password");
+    
+    // Champs profil détaillé
+    String bio = req.getParameter("bio");
+    String diplomes = req.getParameter("diplomes");
+    String experience = req.getParameter("experience");
+    // La photo est gérée séparément par UploadPhotoServlet, donc on garde l'existante
+    String photoProfile = null;
+    
+    if (id != null && !id.isEmpty()) {
+        Medecin existing = medecinService.trouverParId(id);
+        if (existing != null) {
+            photoProfile = existing.getPhotoProfile(); // Garder la photo existante
         }
-
+        
+        String erreur = medecinService.modifier(id, nom, specialite, tauxStr, lieu, email, telephone, bio, diplomes, experience, photoProfile);
         if (erreur != null) {
             req.setAttribute("erreur", erreur);
             req.setAttribute("specialites", medecinService.listerSpecialites());
@@ -254,10 +258,19 @@ public class AdminServlet extends HttpServlet {
             req.getRequestDispatcher("/views/admin/medecinForm.jsp").forward(req, resp);
             return;
         }
-
-        req.getSession().setAttribute("messageSucces", "Médecin " + (id != null ? "modifié" : "créé") + " avec succès !");
-        resp.sendRedirect(req.getContextPath() + "/admin?action=medecins");
+    } else {
+        String erreur = medecinService.inscrire(nom, specialite, tauxStr, lieu, email, telephone, bio, diplomes, experience, photoProfile, password);
+        if (erreur != null) {
+            req.setAttribute("erreur", erreur);
+            req.setAttribute("specialites", medecinService.listerSpecialites());
+            req.getRequestDispatcher("/views/admin/medecinForm.jsp").forward(req, resp);
+            return;
+        }
     }
+
+    req.getSession().setAttribute("messageSucces", "Médecin " + (id != null ? "modifié" : "créé") + " avec succès !");
+    resp.sendRedirect(req.getContextPath() + "/admin?action=medecins");
+}
 
     private void enregistrerPatient(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
