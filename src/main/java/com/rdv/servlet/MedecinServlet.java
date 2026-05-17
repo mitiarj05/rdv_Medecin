@@ -50,26 +50,26 @@ public class MedecinServlet extends HttpServlet {
             case "dashboard":
                 afficherDashboard(req, resp);
                 break;
-                
+
             case "liste":
                 List<Patient> listePatients = patientService.listerTous();
                 req.setAttribute("patients", listePatients);
                 req.getRequestDispatcher("/views/medecin/list.jsp").forward(req, resp);
                 break;
-                
+
             case "mesPatients":
                 afficherMesPatients(req, resp);
                 break;
-                
+
             case "retirerPatient":
                 retirerPatient(req, resp);
                 break;
-                
+
             case "form":
                 req.setAttribute("specialites", medecinService.listerSpecialites());
                 req.getRequestDispatcher("/views/medecin/form.jsp").forward(req, resp);
                 break;
-                
+
             case "edit":
                 String idEdit = req.getParameter("id");
                 Medecin medecin = medecinService.trouverParId(idEdit);
@@ -81,20 +81,20 @@ public class MedecinServlet extends HttpServlet {
                 req.setAttribute("specialites", medecinService.listerSpecialites());
                 req.getRequestDispatcher("/views/medecin/form.jsp").forward(req, resp);
                 break;
-                
+
             case "supprimer":
                 String idSupp = req.getParameter("id");
                 HttpSession sessionSupp = req.getSession(false);
                 String idMedecinConnecte = null;
                 String roleUtilisateur = null;
-                
+
                 if (sessionSupp != null) {
                     idMedecinConnecte = (String) sessionSupp.getAttribute("idUtilisateur");
                     roleUtilisateur = (String) sessionSupp.getAttribute("role");
                 }
-                
+
                 boolean supprimeReussi = medecinService.supprimer(idSupp);
-                
+
                 if (supprimeReussi && "medecin".equals(roleUtilisateur) && idSupp != null && idSupp.equals(idMedecinConnecte)) {
                     sessionSupp.invalidate();
                     resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp?msg=account_deleted");
@@ -102,23 +102,28 @@ public class MedecinServlet extends HttpServlet {
                     resp.sendRedirect(req.getContextPath() + "/medecin?action=liste");
                 }
                 break;
-                
+
             case "top5":
                 List<Medecin> top5 = medecinService.top5PlusConsultes();
                 req.setAttribute("top5", top5);
                 req.getRequestDispatcher("/views/medecin/top5.jsp").forward(req, resp);
                 break;
-                
+
             case "profile":
                 afficherProfilPublic(req, resp);
                 break;
-                
-            // ========== NOUVEAU : Carte interactive ==========
+
+            // Carte des médecins (pour patients et admin)
             case "map":
                 afficherCarte(req, resp);
                 break;
-                
-            // ========== API pour médecins à proximité ==========
+
+            // NOUVEAU : Carte des patients pour médecin
+            case "patientMap":
+                afficherCartePatients(req, resp);
+                break;
+
+            // API pour médecins à proximité
             case "nearby":
                 trouverMedecinsProches(req, resp);
                 break;
@@ -127,7 +132,7 @@ public class MedecinServlet extends HttpServlet {
                 resp.sendRedirect(req.getContextPath() + "/medecin?action=dashboard");
         }
     }
-    
+
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
@@ -138,40 +143,38 @@ public class MedecinServlet extends HttpServlet {
         if ("enregistrer".equals(action)) {
             String id = req.getParameter("idmed");
             String telephone = req.getParameter("telephone");
-            
+
             String bio = req.getParameter("bio");
             String diplomes = req.getParameter("diplomes");
             String experience = req.getParameter("experience");
-            
-            // Récupération des coordonnées géographiques
+
             String adresse = req.getParameter("adresse");
             String latitudeStr = req.getParameter("latitude");
             String longitudeStr = req.getParameter("longitude");
-            
+
             Double latitude = null;
             Double longitude = null;
-            
+
             if (latitudeStr != null && !latitudeStr.trim().isEmpty()) {
                 try {
                     latitude = Double.parseDouble(latitudeStr);
                 } catch (NumberFormatException e) {}
             }
-            
+
             if (longitudeStr != null && !longitudeStr.trim().isEmpty()) {
                 try {
                     longitude = Double.parseDouble(longitudeStr);
                 } catch (NumberFormatException e) {}
             }
-            
+
             String photoProfile = null;
 
             if (id != null && !id.isEmpty()) {
-                // Garder la photo existante si elle n'est pas modifiée
                 Medecin existing = medecinService.trouverParId(id);
                 if (existing != null) {
                     photoProfile = existing.getPhotoProfile();
                 }
-                
+
                 String erreur = medecinService.modifier(
                         id,
                         req.getParameter("nommed"),
@@ -242,41 +245,41 @@ public class MedecinServlet extends HttpServlet {
 
     private void afficherMesPatients(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        
+
         System.out.println("=== AFFICHER MES PATIENTS ===");
-        
+
         HttpSession session = req.getSession(false);
         if (session == null) {
             System.err.println("Session est null!");
             resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
             return;
         }
-        
+
         System.out.println("Session ID: " + session.getId());
-        
+
         java.util.Enumeration<String> attrs = session.getAttributeNames();
         System.out.println("Attributs de session:");
         while (attrs.hasMoreElements()) {
             String attr = attrs.nextElement();
             System.out.println("  " + attr + " = " + session.getAttribute(attr));
         }
-        
+
         String idMedecin = (String) session.getAttribute("idUtilisateur");
         System.out.println("ID Médecin = '" + idMedecin + "'");
-        
+
         if (idMedecin == null) {
             System.err.println("ERREUR: idUtilisateur est NULL dans la session!");
             resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
             return;
         }
-        
+
         try {
             List<MedecinDAO.PatientAvecStat> mesPatients = medecinService.listerPatientsAvecStats(idMedecin);
             System.out.println("Résultat: " + (mesPatients != null ? mesPatients.size() : 0) + " patients");
-            
+
             req.setAttribute("patientsDuMedecin", mesPatients);
             req.setAttribute("totalPatients", mesPatients != null ? mesPatients.size() : 0);
-            
+
             req.getRequestDispatcher("/views/medecin/mesPatients.jsp").forward(req, resp);
         } catch (Exception e) {
             System.err.println("ERREUR dans afficherMesPatients: " + e.getMessage());
@@ -284,37 +287,37 @@ public class MedecinServlet extends HttpServlet {
             throw e;
         }
     }
-    
+
     private void retirerPatient(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        
+
         HttpSession session = req.getSession(false);
         if (session == null) {
             resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
             return;
         }
-        
+
         String idMedecin = (String) session.getAttribute("idUtilisateur");
         String idPatient = req.getParameter("idPatient");
-        
+
         if (idMedecin == null || idPatient == null) {
             req.setAttribute("erreur", "Paramètres invalides.");
             afficherMesPatients(req, resp);
             return;
         }
-        
+
         boolean retirerReussi = medecinService.retirerPatientDeMaListe(idMedecin, idPatient);
-        
+
         if (retirerReussi) {
             req.setAttribute("success", "Patient retiré de votre liste avec succès.");
         } else {
             req.setAttribute("erreur", "Erreur lors du retrait du patient.");
         }
-        
+
         List<MedecinDAO.PatientAvecStat> patientsMisAJour = medecinService.listerPatientsAvecStats(idMedecin);
         req.setAttribute("patientsDuMedecin", patientsMisAJour);
         req.setAttribute("totalPatients", patientsMisAJour != null ? patientsMisAJour.size() : 0);
-        
+
         req.getRequestDispatcher("/views/medecin/mesPatients.jsp").forward(req, resp);
     }
 
@@ -402,37 +405,89 @@ public class MedecinServlet extends HttpServlet {
      */
     private void afficherProfilPublic(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        
+
         String idMedecin = req.getParameter("id");
-        
+
         if (idMedecin == null || idMedecin.isEmpty()) {
             resp.sendRedirect(req.getContextPath() + "/search");
             return;
         }
-        
+
         Medecin medecin = medecinService.trouverParId(idMedecin);
-        
+
         if (medecin == null) {
             resp.sendRedirect(req.getContextPath() + "/search?error=notfound");
             return;
         }
-        
+
         req.setAttribute("medecin", medecin);
         req.getRequestDispatcher("/views/medecin/profile.jsp").forward(req, resp);
     }
 
     /**
-     * Affiche la carte interactive des médecins
+     * Affiche la carte interactive des médecins (pour patients et admin)
      */
     private void afficherCarte(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        
+
         List<Medecin> medecins = medecinService.listerAvecCoordonnees();
         List<String> specialites = medecinService.listerSpecialites();
-        
+
         req.setAttribute("medecins", medecins);
         req.setAttribute("specialites", specialites);
         req.getRequestDispatcher("/views/medecin/map.jsp").forward(req, resp);
+    }
+
+    /**
+     * Affiche la carte des patients pour le médecin (visualisation des patients géolocalisés)
+     */
+    private void afficherCartePatients(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+
+        HttpSession session = req.getSession(false);
+        if (session == null || session.getAttribute("utilisateur") == null) {
+            resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp");
+            return;
+        }
+
+        String idMedecin = (String) session.getAttribute("idUtilisateur");
+        Medecin medecin = medecinService.trouverParId(idMedecin);
+
+        // Récupérer les patients avec coordonnées
+        List<Patient> patientsAvecCoords = patientService.getPatientsAvecCoordonneesPourMedecin(idMedecin);
+
+        // Récupérer aussi les statistiques pour chaque patient
+        List<MedecinDAO.PatientAvecStat> patientsStats = medecinService.listerPatientsAvecStats(idMedecin);
+
+        // Créer une map pour associer le nombre de RDV
+        java.util.Map<String, Integer> nbRdvMap = new java.util.HashMap<>();
+        java.util.Map<String, String> dernierRdvMap = new java.util.HashMap<>();
+        for (MedecinDAO.PatientAvecStat stat : patientsStats) {
+            nbRdvMap.put(stat.getIdpat(), stat.getNbRendezVous());
+            if (stat.getDernierRdv() != null) {
+                dernierRdvMap.put(stat.getIdpat(), stat.getDernierRdv());
+            }
+        }
+
+        // Créer une liste d'objets combinés pour la JSP
+        List<PatientAvecStats> patientsAvecStats = new ArrayList<>();
+        for (Patient p : patientsAvecCoords) {
+            PatientAvecStats pas = new PatientAvecStats();
+            pas.setIdpat(p.getIdpat());
+            pas.setNomPat(p.getNomPat());
+            pas.setEmail(p.getEmail());
+            pas.setTelephone(p.getTelephone());
+            pas.setLatitude(p.getLatitude());
+            pas.setLongitude(p.getLongitude());
+            pas.setAdresse(p.getAdresse());
+            pas.setNbRendezVous(nbRdvMap.getOrDefault(p.getIdpat(), 0));
+            pas.setDernierRdv(dernierRdvMap.get(p.getIdpat()));
+            patientsAvecStats.add(pas);
+        }
+
+        req.setAttribute("medecin", medecin);
+        req.setAttribute("patientsAvecStats", patientsAvecStats);
+        req.getRequestDispatcher("/views/medecin/patientMap.jsp").forward(req, resp);
     }
 
     /**
@@ -440,38 +495,38 @@ public class MedecinServlet extends HttpServlet {
      */
     private void trouverMedecinsProches(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        
+
         String latStr = req.getParameter("lat");
         String lonStr = req.getParameter("lon");
         String limitStr = req.getParameter("limit");
-        
-        double lat = -18.8792; // Antananarivo par défaut
+
+        double lat = -18.8792;
         double lon = 47.5079;
         int limit = 20;
-        
+
         if (latStr != null && !latStr.isEmpty()) {
             try {
                 lat = Double.parseDouble(latStr);
             } catch (NumberFormatException e) {}
         }
-        
+
         if (lonStr != null && !lonStr.isEmpty()) {
             try {
                 lon = Double.parseDouble(lonStr);
             } catch (NumberFormatException e) {}
         }
-        
+
         if (limitStr != null && !limitStr.isEmpty()) {
             try {
                 limit = Integer.parseInt(limitStr);
             } catch (NumberFormatException e) {}
         }
-        
+
         List<Medecin> medecins = medecinService.trouverPlusProches(lat, lon, limit);
-        
+
         resp.setContentType("application/json;charset=UTF-8");
         PrintWriter out = resp.getWriter();
-        
+
         JSONArray jsonArray = new JSONArray();
         for (Medecin m : medecins) {
             JSONObject obj = new JSONObject();
@@ -488,10 +543,11 @@ public class MedecinServlet extends HttpServlet {
             obj.put("distance", String.format("%.2f", m.distanceTo(lat, lon)));
             jsonArray.put(obj);
         }
-        
+
         out.write(jsonArray.toString());
     }
 
+    // Classes internes
     public static class PatientInfo {
         private String nomPat;
         private String email;
@@ -502,5 +558,36 @@ public class MedecinServlet extends HttpServlet {
         public void setEmail(String email) { this.email = email; }
         public String getDateDernierRdv() { return dateDernierRdv; }
         public void setDateDernierRdv(String dateDernierRdv) { this.dateDernierRdv = dateDernierRdv; }
+    }
+
+    public static class PatientAvecStats {
+        private String idpat;
+        private String nomPat;
+        private String email;
+        private String telephone;
+        private Double latitude;
+        private Double longitude;
+        private String adresse;
+        private int nbRendezVous;
+        private String dernierRdv;
+
+        public String getIdpat() { return idpat; }
+        public void setIdpat(String idpat) { this.idpat = idpat; }
+        public String getNomPat() { return nomPat; }
+        public void setNomPat(String nomPat) { this.nomPat = nomPat; }
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+        public String getTelephone() { return telephone; }
+        public void setTelephone(String telephone) { this.telephone = telephone; }
+        public Double getLatitude() { return latitude; }
+        public void setLatitude(Double latitude) { this.latitude = latitude; }
+        public Double getLongitude() { return longitude; }
+        public void setLongitude(Double longitude) { this.longitude = longitude; }
+        public String getAdresse() { return adresse; }
+        public void setAdresse(String adresse) { this.adresse = adresse; }
+        public int getNbRendezVous() { return nbRendezVous; }
+        public void setNbRendezVous(int nbRendezVous) { this.nbRendezVous = nbRendezVous; }
+        public String getDernierRdv() { return dernierRdv; }
+        public void setDernierRdv(String dernierRdv) { this.dernierRdv = dernierRdv; }
     }
 }

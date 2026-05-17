@@ -22,8 +22,7 @@ public class PatientDAO {
             System.err.println("[PatientDAO] L'email " + patient.getEmail() + " est déjà utilisé");
             return false;
         }
-        
-        // Normaliser et vérifier le téléphone
+
         String normalizedPhone = null;
         if (patient.getTelephone() != null && !patient.getTelephone().isEmpty()) {
             normalizedPhone = PhoneUtil.normaliserTelephone(patient.getTelephone());
@@ -38,7 +37,8 @@ public class PatientDAO {
             patient.setTelephone(normalizedPhone);
         }
 
-        String sql = "INSERT INTO patient (nom_pat, datenais, email, telephone, mot_de_passe) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO patient (nom_pat, datenais, email, telephone, mot_de_passe, langue, latitude, longitude, adresse) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -48,6 +48,21 @@ public class PatientDAO {
             ps.setString(3, patient.getEmail());
             ps.setString(4, patient.getTelephone());
             ps.setString(5, patient.getMotDePasse());
+            ps.setString(6, patient.getLangue() != null ? patient.getLangue() : "fr");
+
+            if (patient.getLatitude() != null) {
+                ps.setDouble(7, patient.getLatitude());
+            } else {
+                ps.setNull(7, java.sql.Types.DOUBLE);
+            }
+
+            if (patient.getLongitude() != null) {
+                ps.setDouble(8, patient.getLongitude());
+            } else {
+                ps.setNull(8, java.sql.Types.DOUBLE);
+            }
+
+            ps.setString(9, patient.getAdresse());
 
             return ps.executeUpdate() == 1;
 
@@ -57,35 +72,26 @@ public class PatientDAO {
         }
     }
 
-    // ── VÉRIFICATION TÉLÉPHONE UNIQUE (avec normalisation) ────────────────────
-    
-    /**
-     * Vérifie si un numéro de téléphone existe déjà chez un patient ou un médecin
-     * Le numéro est normalisé avant vérification
-     * @param telephone Le numéro à vérifier
-     * @param idPatient L'ID du patient actuel (null pour création, sinon pour modification)
-     * @return true si le téléphone existe déjà, false sinon
-     */
+    // ── VÉRIFICATION TÉLÉPHONE UNIQUE ────────────────────────────────────────
+
     public boolean telephoneExiste(String telephone, String idPatient) {
         if (telephone == null || telephone.isEmpty()) {
             return false;
         }
-        
-        // Normaliser le numéro avant vérification
+
         String normalizedPhone = PhoneUtil.normaliserTelephone(telephone);
         if (normalizedPhone == null) {
             return false;
         }
-        
+
         String sqlPatient = "SELECT COUNT(*) FROM patient WHERE telephone = ?";
         String sqlMedecin = "SELECT COUNT(*) FROM medecin WHERE telephone = ?";
-        
+
         if (idPatient != null && !idPatient.isEmpty()) {
             sqlPatient = "SELECT COUNT(*) FROM patient WHERE telephone = ? AND idpat::text != ?";
         }
-        
+
         try (Connection conn = DBConnection.getConnection()) {
-            // Vérifier chez les patients
             try (PreparedStatement ps = conn.prepareStatement(sqlPatient)) {
                 ps.setString(1, normalizedPhone);
                 if (idPatient != null && !idPatient.isEmpty()) {
@@ -98,8 +104,7 @@ public class PatientDAO {
                     }
                 }
             }
-            
-            // Vérifier chez les médecins
+
             try (PreparedStatement ps = conn.prepareStatement(sqlMedecin)) {
                 ps.setString(1, normalizedPhone);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -122,7 +127,7 @@ public class PatientDAO {
 
         String sqlPatient = "SELECT COUNT(*) FROM patient WHERE email = ?";
         String sqlMedecin = "SELECT COUNT(*) FROM medecin WHERE email = ?";
-        
+
         try (Connection conn = DBConnection.getConnection()) {
             try (PreparedStatement ps = conn.prepareStatement(sqlPatient)) {
                 ps.setString(1, email);
@@ -147,7 +152,7 @@ public class PatientDAO {
 
         String sqlPatient = "SELECT COUNT(*) FROM patient WHERE email = ? AND idpat::text != ?";
         String sqlMedecin = "SELECT COUNT(*) FROM medecin WHERE email = ?";
-        
+
         try (Connection conn = DBConnection.getConnection()) {
             try (PreparedStatement ps = conn.prepareStatement(sqlPatient)) {
                 ps.setString(1, email);
@@ -172,14 +177,14 @@ public class PatientDAO {
 
     public List<Patient> listerTous() {
         List<Patient> liste = new ArrayList<>();
-        String sql = "SELECT idpat, nom_pat, datenais, email, telephone FROM patient ORDER BY nom_pat";
+        String sql = "SELECT idpat, nom_pat, datenais, email, telephone, langue, latitude, longitude, adresse FROM patient ORDER BY nom_pat";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                liste.add(mapper(rs));
+                liste.add(mapperComplet(rs));
             }
 
         } catch (SQLException e) {
@@ -189,7 +194,7 @@ public class PatientDAO {
     }
 
     public Patient trouverParId(String idpat) {
-        String sql = "SELECT idpat, nom_pat, datenais, email, telephone FROM patient WHERE idpat::text = ?";
+        String sql = "SELECT idpat, nom_pat, datenais, email, telephone, langue, latitude, longitude, adresse FROM patient WHERE idpat::text = ?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -203,7 +208,7 @@ public class PatientDAO {
             ps.setString(1, idpat);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return mapper(rs);
+                    return mapperComplet(rs);
                 }
             }
 
@@ -214,7 +219,7 @@ public class PatientDAO {
     }
 
     public Patient trouverParEmail(String email) {
-        String sql = "SELECT idpat, nom_pat, datenais, email, telephone, mot_de_passe FROM patient WHERE email = ?";
+        String sql = "SELECT idpat, nom_pat, datenais, email, telephone, mot_de_passe, langue, latitude, longitude, adresse FROM patient WHERE email = ?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -222,7 +227,7 @@ public class PatientDAO {
             ps.setString(1, email);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    Patient p = mapper(rs);
+                    Patient p = mapperComplet(rs);
                     p.setMotDePasse(rs.getString("mot_de_passe"));
                     return p;
                 }
@@ -237,7 +242,7 @@ public class PatientDAO {
     // ── UPDATE ───────────────────────────────────────────────────────────────
 
     public boolean modifier(Patient patient) {
-        String sql = "UPDATE patient SET nom_pat = ?, datenais = ?, email = ?, telephone = ? WHERE idpat::text = ?";
+        String sql = "UPDATE patient SET nom_pat = ?, datenais = ?, email = ?, telephone = ?, langue = ?, latitude = ?, longitude = ?, adresse = ? WHERE idpat::text = ?";
 
         try {
             UUID.fromString(patient.getIdpat());
@@ -250,8 +255,7 @@ public class PatientDAO {
             System.err.println("[PatientDAO] Impossible de modifier: l'email " + patient.getEmail() + " est déjà utilisé par un autre compte");
             return false;
         }
-        
-        // Normaliser et vérifier le téléphone
+
         String normalizedPhone = null;
         if (patient.getTelephone() != null && !patient.getTelephone().isEmpty()) {
             normalizedPhone = PhoneUtil.normaliserTelephone(patient.getTelephone());
@@ -273,7 +277,22 @@ public class PatientDAO {
             ps.setDate(2, Date.valueOf(patient.getDatenais()));
             ps.setString(3, patient.getEmail());
             ps.setString(4, patient.getTelephone());
-            ps.setString(5, patient.getIdpat());
+            ps.setString(5, patient.getLangue() != null ? patient.getLangue() : "fr");
+
+            if (patient.getLatitude() != null) {
+                ps.setDouble(6, patient.getLatitude());
+            } else {
+                ps.setNull(6, java.sql.Types.DOUBLE);
+            }
+
+            if (patient.getLongitude() != null) {
+                ps.setDouble(7, patient.getLongitude());
+            } else {
+                ps.setNull(7, java.sql.Types.DOUBLE);
+            }
+
+            ps.setString(8, patient.getAdresse());
+            ps.setString(9, patient.getIdpat());
 
             return ps.executeUpdate() == 1;
 
@@ -281,6 +300,59 @@ public class PatientDAO {
             System.err.println("[PatientDAO] Erreur modifier : " + e.getMessage());
             return false;
         }
+    }
+
+    // ── NOUVELLES MÉTHODES POUR GÉOLOCALISATION ──────────────────────────────
+
+    public boolean mettreAJourCoordonnees(String idPatient, Double latitude, Double longitude, String adresse) {
+        String sql = "UPDATE patient SET latitude = ?, longitude = ?, adresse = ? WHERE idpat::text = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            if (latitude != null) {
+                ps.setDouble(1, latitude);
+            } else {
+                ps.setNull(1, java.sql.Types.DOUBLE);
+            }
+
+            if (longitude != null) {
+                ps.setDouble(2, longitude);
+            } else {
+                ps.setNull(2, java.sql.Types.DOUBLE);
+            }
+
+            ps.setString(3, adresse);
+            ps.setString(4, idPatient);
+
+            return ps.executeUpdate() == 1;
+        } catch (SQLException e) {
+            System.err.println("[PatientDAO] Erreur mettreAJourCoordonnees: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public List<Patient> getPatientsAvecCoordonneesPourMedecin(String idMedecin) {
+        List<Patient> liste = new ArrayList<>();
+        String sql = "SELECT DISTINCT p.idpat, p.nom_pat, p.email, p.telephone, p.datenais, " +
+                "p.latitude, p.longitude, p.adresse, p.langue " +
+                "FROM patient p " +
+                "INNER JOIN rdv r ON p.idpat = r.idpat " +
+                "WHERE r.idmed::text = ? AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL " +
+                "ORDER BY p.nom_pat";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, idMedecin);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                liste.add(mapperComplet(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("[PatientDAO] Erreur getPatientsAvecCoordonneesPourMedecin: " + e.getMessage());
+        }
+        return liste;
     }
 
     // ── DELETE ───────────────────────────────────────────────────────────────
@@ -308,6 +380,40 @@ public class PatientDAO {
 
     // ── MAPPER ───────────────────────────────────────────────────────────────
 
+    private Patient mapperComplet(ResultSet rs) throws SQLException {
+        Patient p = new Patient();
+
+        Object idObj = rs.getObject("idpat");
+        if (idObj != null) {
+            p.setIdpat(idObj.toString());
+        }
+
+        p.setNomPat(rs.getString("nom_pat"));
+
+        Date sqlDate = rs.getDate("datenais");
+        if (sqlDate != null) {
+            p.setDatenais(sqlDate.toLocalDate());
+        }
+
+        p.setEmail(rs.getString("email"));
+        p.setTelephone(rs.getString("telephone"));
+        p.setLangue(rs.getString("langue"));
+
+        Object latObj = rs.getObject("latitude");
+        if (latObj != null) {
+            p.setLatitude(rs.getDouble("latitude"));
+        }
+
+        Object lonObj = rs.getObject("longitude");
+        if (lonObj != null) {
+            p.setLongitude(rs.getDouble("longitude"));
+        }
+
+        p.setAdresse(rs.getString("adresse"));
+
+        return p;
+    }
+
     private Patient mapper(ResultSet rs) throws SQLException {
         Patient p = new Patient();
 
@@ -325,6 +431,9 @@ public class PatientDAO {
 
         p.setEmail(rs.getString("email"));
         p.setTelephone(rs.getString("telephone"));
+        p.setLangue(rs.getString("langue"));
+        p.setAdresse(rs.getString("adresse"));
+
         return p;
     }
 }

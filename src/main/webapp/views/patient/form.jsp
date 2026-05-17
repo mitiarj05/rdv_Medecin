@@ -52,6 +52,39 @@
                 <div id="telephoneStatus" style="font-size: 13px; margin-top: 8px; padding: 8px; border-radius: 6px; display: none;"></div>
             </div>
 
+            <!-- ========== CHAMPS GÉOLOCALISATION POUR PATIENT ========== -->
+            <div class="form-group">
+                <label>📍 Adresse complète (domicile)</label>
+                <textarea name="adresse" id="adresse" rows="2"
+                          style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-family:inherit;"
+                          placeholder="Ex: 123 Rue de la Paix, Antananarivo, Madagascar">${patient.adresse}</textarea>
+                <small style="color:#666; font-size:11px;">Votre adresse pour que les médecins puissent vous localiser (visites à domicile).</small>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                <div class="form-group">
+                    <label>🌐 Latitude</label>
+                    <input type="text" name="latitude" id="latitude"
+                           value="${patient.latitude}"
+                           placeholder="Ex: -18.8792"
+                           style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                </div>
+                <div class="form-group">
+                    <label>🌐 Longitude</label>
+                    <input type="text" name="longitude" id="longitude"
+                           value="${patient.longitude}"
+                           placeholder="Ex: 47.5079"
+                           style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <button type="button" id="geocodeBtn" class="btn btn-secondary" style="background: #6c757d;">
+                    <i class="fas fa-map-pin"></i> Obtenir les coordonnées depuis l'adresse
+                </button>
+            </div>
+            <!-- ========== FIN CHAMPS GÉOLOCALISATION ========== -->
+
             <c:if test="${empty patient}">
                 <div class="form-group">
                     <label>Mot de passe</label>
@@ -91,14 +124,14 @@
                 <h3 style="color: #dc3545; font-size: 16px; margin: 0 0 10px 0;">Zone dangereuse</h3>
                 <a href="${pageContext.request.contextPath}/patient?action=supprimer&id=${patient.idpat}"
                    class="btn btn-danger"
-                   style="display: inline-block; background-color:#dc3545; color:white; padding:10px 20px; 
+                   style="display: inline-block; background-color:#dc3545; color:white; padding:10px 20px;
                           text-decoration:none; border-radius:5px; font-weight:bold;"
                    onclick="return confirm('Êtes-vous ABSOLUMENT sûr de vouloir supprimer votre compte ?\n\n⚠️ Cette action est IRRÉVERSIBLE !');">
                     🗑️ Supprimer mon compte définitivement
                 </a>
             </div>
         </c:if>
-        
+
     </div>
 </div>
 
@@ -111,24 +144,22 @@ let checkTimeout = null;
 
 function verifierTelephone() {
     let telephone = telephoneInput.value.trim();
-    
-    // Si le champ est vide
+
     if (telephone === '') {
         telephoneStatus.style.display = 'none';
         submitBtn.disabled = false;
         return;
     }
-    
-    // Afficher "vérification en cours"
+
     telephoneStatus.style.display = 'block';
     telephoneStatus.style.backgroundColor = '#e3f2fd';
     telephoneStatus.style.color = '#0c5460';
     telephoneStatus.style.border = '1px solid #bee5eb';
     telephoneStatus.innerHTML = '⏳ Vérification en cours...';
     submitBtn.disabled = true;
-    
+
     const patientId = document.getElementById('idpat')?.value || '';
-    
+
     fetch('${pageContext.request.contextPath}/api/check-telephone', {
         method: 'POST',
         headers: {
@@ -139,21 +170,18 @@ function verifierTelephone() {
     .then(response => response.json())
     .then(data => {
         if (data.exists) {
-            // Numéro déjà utilisé - ERREUR ROUGE
             telephoneStatus.style.backgroundColor = '#f8d7da';
             telephoneStatus.style.color = '#721c24';
             telephoneStatus.style.border = '1px solid #f5c6cb';
             telephoneStatus.innerHTML = data.message;
             submitBtn.disabled = true;
         } else if (data.valid === false && !data.exists) {
-            // Format invalide
             telephoneStatus.style.backgroundColor = '#fff3cd';
             telephoneStatus.style.color = '#856404';
             telephoneStatus.style.border = '1px solid #ffeeba';
             telephoneStatus.innerHTML = data.message;
             submitBtn.disabled = true;
         } else {
-            // Numéro disponible - VERT
             telephoneStatus.style.backgroundColor = '#d4edda';
             telephoneStatus.style.color = '#155724';
             telephoneStatus.style.border = '1px solid #c3e6cb';
@@ -176,6 +204,40 @@ telephoneInput.addEventListener('input', function() {
 telephoneInput.addEventListener('blur', function() {
     if (checkTimeout) clearTimeout(checkTimeout);
     verifierTelephone();
+});
+
+// ========== GÉOCODAGE DE L'ADRESSE POUR PATIENT ==========
+document.getElementById('geocodeBtn')?.addEventListener('click', function() {
+    var adresse = document.getElementById('adresse').value;
+    if (!adresse.trim()) {
+        alert('Veuillez entrer une adresse d\'abord.');
+        return;
+    }
+
+    var btn = document.getElementById('geocodeBtn');
+    var originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recherche...';
+    btn.disabled = true;
+
+    fetch('${pageContext.request.contextPath}/api/geocode?adresse=' + encodeURIComponent(adresse))
+        .then(response => response.json())
+        .then(data => {
+            if (data.latitude && data.longitude) {
+                document.getElementById('latitude').value = data.latitude;
+                document.getElementById('longitude').value = data.longitude;
+                alert('Coordonnées trouvées !\nLatitude: ' + data.latitude + '\nLongitude: ' + data.longitude);
+            } else {
+                alert('Adresse non trouvée. Veuillez vérifier l\'adresse ou la saisir plus précisément.');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la recherche. Veuillez réessayer.');
+        })
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
 });
 </script>
 

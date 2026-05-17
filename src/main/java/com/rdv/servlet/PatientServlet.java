@@ -52,8 +52,7 @@ public class PatientServlet extends HttpServlet {
                 System.out.println("[PatientServlet] Affichage dashboard");
                 afficherDashboard(req, resp);
                 break;
-                
-            // ========== NOUVEAU : Carte pour patient ==========
+
             case "map":
                 afficherCarte(req, resp);
                 break;
@@ -79,20 +78,20 @@ public class PatientServlet extends HttpServlet {
 
             case "supprimer":
                 String idSupp = req.getParameter("id");
-                
+
                 HttpSession sessionSupp = req.getSession(false);
                 String idPatientConnecte = null;
                 String roleUtilisateur = null;
-                
+
                 if (sessionSupp != null) {
                     idPatientConnecte = (String) sessionSupp.getAttribute("idUtilisateur");
                     roleUtilisateur = (String) sessionSupp.getAttribute("role");
                 }
-                
+
                 boolean isSelfDelete = "patient".equals(roleUtilisateur) && idSupp != null && idSupp.equals(idPatientConnecte);
-                
+
                 boolean supprimeReussi = patientService.supprimer(idSupp);
-                
+
                 if (supprimeReussi && isSelfDelete) {
                     sessionSupp.invalidate();
                     resp.sendRedirect(req.getContextPath() + "/views/shared/login.jsp?msg=account_deleted");
@@ -114,14 +113,14 @@ public class PatientServlet extends HttpServlet {
                 resp.sendRedirect(req.getContextPath() + "/patient?action=liste");
         }
     }
-    
+
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
         req.setCharacterEncoding("UTF-8");
         String action = req.getParameter("action");
-        
+
         System.out.println("[PatientServlet] doPost - Action: " + action);
 
         if ("enregistrer".equals(action)) {
@@ -132,11 +131,33 @@ public class PatientServlet extends HttpServlet {
             String telephone = req.getParameter("telephone");
             String password = req.getParameter("password");
 
+            // Récupération des coordonnées géographiques
+            String adresse = req.getParameter("adresse");
+            String latitudeStr = req.getParameter("latitude");
+            String longitudeStr = req.getParameter("longitude");
+
+            Double latitude = null;
+            Double longitude = null;
+
+            if (latitudeStr != null && !latitudeStr.trim().isEmpty()) {
+                try {
+                    latitude = Double.parseDouble(latitudeStr);
+                } catch (NumberFormatException e) {}
+            }
+
+            if (longitudeStr != null && !longitudeStr.trim().isEmpty()) {
+                try {
+                    longitude = Double.parseDouble(longitudeStr);
+                } catch (NumberFormatException e) {}
+            }
+
             HttpSession session = req.getSession(false);
             String role = (session != null) ? (String) session.getAttribute("role") : null;
 
             if (id != null && !id.trim().isEmpty()) {
                 System.out.println("[PatientServlet] Modification patient ID: " + id);
+
+                // Mettre à jour les informations de base
                 String erreur = patientService.modifier(id, nom, datenais, email, telephone);
 
                 if (erreur != null) {
@@ -147,24 +168,29 @@ public class PatientServlet extends HttpServlet {
                     return;
                 }
 
+                // Mettre à jour les coordonnées
+                if (adresse != null || latitude != null || longitude != null) {
+                    patientService.mettreAJourCoordonnees(id, latitude, longitude, adresse);
+                }
+
                 Patient patientMisAJour = patientService.trouverParId(id);
                 if (patientMisAJour != null && session != null) {
                     session.setAttribute("utilisateur", patientMisAJour);
                     session.setAttribute("idUtilisateur", patientMisAJour.getIdpat());
                     session.setAttribute("messageSucces", "Profil modifié avec succès !");
                 }
-                
+
                 if ("patient".equals(role)) {
                     resp.sendRedirect(req.getContextPath() + "/patient?action=dashboard");
                 } else {
                     resp.sendRedirect(req.getContextPath() + "/patient?action=liste");
                 }
                 return;
-                
+
             } else {
                 System.out.println("[PatientServlet] Création nouveau patient");
                 String erreur = patientService.inscrire(nom, datenais, email, telephone, password);
-                
+
                 if (erreur != null) {
                     req.setAttribute("erreur", erreur);
                     req.getRequestDispatcher("/views/patient/form.jsp").forward(req, resp);
@@ -173,6 +199,12 @@ public class PatientServlet extends HttpServlet {
 
                 Patient nouveauPatient = patientService.trouverParEmail(email);
                 if (session != null && nouveauPatient != null) {
+                    // Mettre à jour les coordonnées si fournies
+                    if (adresse != null || latitude != null || longitude != null) {
+                        patientService.mettreAJourCoordonnees(nouveauPatient.getIdpat(), latitude, longitude, adresse);
+                        nouveauPatient = patientService.trouverParId(nouveauPatient.getIdpat());
+                    }
+
                     if (session.getAttribute("utilisateur") != null) {
                         session.setAttribute("messageSucces", "Patient créé avec succès !");
                         resp.sendRedirect(req.getContextPath() + "/patient?action=liste");
@@ -287,16 +319,16 @@ public class PatientServlet extends HttpServlet {
         System.out.println("[PatientServlet] Forward vers /views/patient/dashboard.jsp");
         req.getRequestDispatcher("/views/patient/dashboard.jsp").forward(req, resp);
     }
-    
+
     /**
      * Affiche la carte interactive des médecins pour les patients
      */
     private void afficherCarte(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        
+
         List<Medecin> medecins = medecinService.listerAvecCoordonnees();
         List<String> specialites = medecinService.listerSpecialites();
-        
+
         req.setAttribute("medecins", medecins);
         req.setAttribute("specialites", specialites);
         req.getRequestDispatcher("/views/medecin/map.jsp").forward(req, resp);

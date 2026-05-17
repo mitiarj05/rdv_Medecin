@@ -10,14 +10,19 @@ public class Patient {
     private String    email;
     private String    telephone;
     private String    motDePasse;
-    
-    // NOUVEAU : Langue préférée du patient
+
+    // Langue préférée du patient
     private String    langue;
+
+    // NOUVEAUX CHAMPS POUR GÉOLOCALISATION
+    private Double    latitude;
+    private Double    longitude;
+    private String    adresse;
 
     // ── Constructeurs ────────────────────────────────────────────────────────
 
     public Patient() {
-        this.langue = "fr"; // Langue par défaut
+        this.langue = "fr";
     }
 
     public Patient(String idpat, String nomPat, LocalDate datenais, String email, String telephone) {
@@ -39,9 +44,10 @@ public class Patient {
         this.motDePasse  = motDePasse;
         this.langue      = "fr";
     }
-    
+
     public Patient(String idpat, String nomPat, LocalDate datenais,
-                   String email, String telephone, String motDePasse, String langue) {
+                   String email, String telephone, String motDePasse, String langue,
+                   Double latitude, Double longitude, String adresse) {
         this.idpat       = idpat;
         this.nomPat      = nomPat;
         this.datenais    = datenais;
@@ -49,6 +55,9 @@ public class Patient {
         this.telephone   = telephone;
         this.motDePasse  = motDePasse;
         this.langue      = langue != null ? langue : "fr";
+        this.latitude    = latitude;
+        this.longitude   = longitude;
+        this.adresse     = adresse;
     }
 
     // ── Getters & Setters ────────────────────────────────────────────────────
@@ -70,10 +79,23 @@ public class Patient {
 
     public String getMotDePasse() { return motDePasse; }
     public void setMotDePasse(String motDePasse) { this.motDePasse = motDePasse; }
-    
-    // NOUVEAU
+
     public String getLangue() { return langue; }
     public void setLangue(String langue) { this.langue = langue; }
+
+    // NOUVEAUX GETTERS/SETTERS
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
+
+    public String getAdresse() { return adresse; }
+    public void setAdresse(String adresse) { this.adresse = adresse; }
+
+    public boolean hasCoordinates() {
+        return latitude != null && longitude != null;
+    }
 
     @Override
     public String toString() {

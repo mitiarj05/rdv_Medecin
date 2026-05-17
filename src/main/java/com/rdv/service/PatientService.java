@@ -192,4 +192,14 @@ public class PatientService {
             return false;
         }
     }
+
+    // Mettre à jour les coordonnées du patient
+    public boolean mettreAJourCoordonnees(String idPatient, Double latitude, Double longitude, String adresse) {
+        return patientDAO.mettreAJourCoordonnees(idPatient, latitude, longitude, adresse);
+    }
+
+    // Récupérer les patients avec coordonnées pour un médecin
+    public List<Patient> getPatientsAvecCoordonneesPourMedecin(String idMedecin) {
+        return patientDAO.getPatientsAvecCoordonneesPourMedecin(idMedecin);
+    }
 }

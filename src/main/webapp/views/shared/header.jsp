@@ -904,9 +904,10 @@
                         <span class="sidebar-icon"><i class="fas fa-tachometer-alt"></i></span>
                         <span class="sidebar-text">Dashboard</span>
                     </a>
-                    <a href="${pageContext.request.contextPath}/medecin?action=map" class="sidebar-link">
+                    <!-- LIEN VERS LA CARTE DES PATIENTS (SEULEMENT) -->
+                    <a href="${pageContext.request.contextPath}/medecin?action=patientMap" class="sidebar-link">
                         <span class="sidebar-icon"><i class="fas fa-map-marked-alt"></i></span>
-                        <span class="sidebar-text">Voir la carte</span>
+                        <span class="sidebar-text">🗺️ Carte de mes patients</span>
                     </a>
                     <a href="${pageContext.request.contextPath}/rdv?action=liste" class="sidebar-link">
                         <span class="sidebar-icon"><i class="fas fa-calendar-alt"></i></span>
